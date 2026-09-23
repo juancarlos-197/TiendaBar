@@ -1,0 +1,66 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isStaff() {
+      return isSignedIn() && (
+        request.auth.token.email == 'jalban.dacompsc@gmail.com' ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'operador']))
+      );
+    }
+
+    // Default deny for unmatched collections
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Connection test document
+    match /test/{docId} {
+      allow read, write: if true;
+    }
+
+    // Users collection:
+    // Allow public read for user directory, loans assignment, and operator listings
+    // Allow create/update for authenticated users or initial onboarding
+    match /users/{userId} {
+      allow read: if true;
+      allow create, update: if true;
+      allow delete: if isStaff() || request.auth == null;
+    }
+
+    // Items collection (Tienda & Bar inventory):
+    // Allow public read for catalog browsing and stock monitoring
+    // Allow create, update, delete for stock adjustments and management
+    match /items/{itemId} {
+      allow read: if true;
+      allow create, update, delete: if true;
+    }
+
+    // Loans collection:
+    // Allow public read for dashboard status, loans tracking, and overdue alerts
+    // Allow create, update, delete for issuing loans and recording returns
+    match /loans/{loanId} {
+      allow read: if true;
+      allow create, update, delete: if true;
+    }
+
+    // Movements collection (Audit log):
+    // Allow public read for the activity feed in the dashboard
+    // Allow create to log inventory and loan actions
+    match /movements/{movementId} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if isStaff() || request.auth == null;
+    }
+  }
+}

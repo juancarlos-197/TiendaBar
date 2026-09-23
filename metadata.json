@@ -1,0 +1,6 @@
+{
+  "name": "Gestión Tienda & Bar",
+  "description": "Sistema integral de inventario, préstamos y control de existencias para Tienda y Bar con autenticación Firebase, alertas y trazabilidad.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,260 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Perfil de usuario con rol y datos de contacto",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Firebase Auth UID",
+          "maxLength": 128
+        },
+        "email": {
+          "type": "string",
+          "description": "Correo electrónico del usuario",
+          "maxLength": 256
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Nombre completo del usuario",
+          "maxLength": 150
+        },
+        "role": {
+          "type": "string",
+          "description": "Rol del usuario en la plataforma",
+          "enum": ["admin", "operador", "cliente"]
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "URL del avatar o foto de perfil",
+          "maxLength": 1000
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Fecha de registro ISO",
+          "maxLength": 64
+        }
+      },
+      "required": ["id", "email", "displayName", "role"]
+    },
+    "Item": {
+      "title": "Item",
+      "description": "Elemento de inventario para Tienda o Bar",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Identificador único del producto o ejemplar",
+          "maxLength": 128
+        },
+        "type": {
+          "type": "string",
+          "description": "Área a la que pertenece: tienda o bar",
+          "enum": ["tienda", "bar"]
+        },
+        "title": {
+          "type": "string",
+          "description": "Título o nombre del producto/ejemplar",
+          "maxLength": 200
+        },
+        "author": {
+          "type": "string",
+          "description": "Autor, marca, bodega o fabricante",
+          "maxLength": 150
+        },
+        "category": {
+          "type": "string",
+          "description": "Categoría o departamento",
+          "maxLength": 100
+        },
+        "isbn": {
+          "type": "string",
+          "description": "Código ISBN, SKU, código de barras o referencia",
+          "maxLength": 100
+        },
+        "availableCopies": {
+          "type": "number",
+          "description": "Número de ejemplares o unidades disponibles"
+        },
+        "totalCopies": {
+          "type": "number",
+          "description": "Número total de ejemplares o unidades registradas"
+        },
+        "coverUrl": {
+          "type": "string",
+          "description": "Foto de portada o imagen del producto",
+          "maxLength": 2000
+        },
+        "description": {
+          "type": "string",
+          "description": "Detalles o descripción adicional",
+          "maxLength": 1000
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Fecha de creación ISO",
+          "maxLength": 64
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Fecha de última modificación ISO",
+          "maxLength": 64
+        }
+      },
+      "required": ["id", "type", "title", "author", "category", "isbn", "availableCopies", "totalCopies"]
+    },
+    "Loan": {
+      "title": "Loan",
+      "description": "Registro de préstamo o asignación de un elemento de Tienda o Bar",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Identificador único del préstamo",
+          "maxLength": 128
+        },
+        "itemId": {
+          "type": "string",
+          "description": "ID del elemento prestado",
+          "maxLength": 128
+        },
+        "itemTitle": {
+          "type": "string",
+          "description": "Título del elemento prestado",
+          "maxLength": 200
+        },
+        "itemType": {
+          "type": "string",
+          "description": "Tipo de inventario: tienda o bar",
+          "enum": ["tienda", "bar"]
+        },
+        "itemCoverUrl": {
+          "type": "string",
+          "description": "Foto de portada del elemento",
+          "maxLength": 2000
+        },
+        "userId": {
+          "type": "string",
+          "description": "ID del usuario prestatario",
+          "maxLength": 128
+        },
+        "userName": {
+          "type": "string",
+          "description": "Nombre del usuario prestatario",
+          "maxLength": 150
+        },
+        "userEmail": {
+          "type": "string",
+          "description": "Correo electrónico del usuario prestatario",
+          "maxLength": 256
+        },
+        "loanDate": {
+          "type": "string",
+          "description": "Fecha en que se otorgó el préstamo",
+          "maxLength": 64
+        },
+        "dueDate": {
+          "type": "string",
+          "description": "Fecha límite establecida para la devolución",
+          "maxLength": 64
+        },
+        "returnDate": {
+          "type": "string",
+          "description": "Fecha efectiva de devolución",
+          "maxLength": 64
+        },
+        "status": {
+          "type": "string",
+          "description": "Estado actual del préstamo",
+          "enum": ["activo", "devuelto", "vencido"]
+        },
+        "notes": {
+          "type": "string",
+          "description": "Observaciones o notas del préstamo",
+          "maxLength": 500
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Fecha de registro ISO",
+          "maxLength": 64
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Fecha de actualización ISO",
+          "maxLength": 64
+        }
+      },
+      "required": ["id", "itemId", "itemTitle", "itemType", "userId", "userName", "loanDate", "dueDate", "status"]
+    },
+    "Movement": {
+      "title": "Movement",
+      "description": "Registro de auditoría y movimientos recientes en el sistema",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Identificador único del movimiento",
+          "maxLength": 128
+        },
+        "type": {
+          "type": "string",
+          "description": "Tipo de acción efectuada",
+          "enum": ["loan_created", "loan_returned", "item_created", "item_updated", "item_deleted", "stock_adjusted"]
+        },
+        "title": {
+          "type": "string",
+          "description": "Título descriptivo del movimiento",
+          "maxLength": 200
+        },
+        "description": {
+          "type": "string",
+          "description": "Detalle del movimiento",
+          "maxLength": 500
+        },
+        "performedBy": {
+          "type": "string",
+          "description": "Usuario que ejecutó la acción",
+          "maxLength": 200
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "Timestamp ISO del movimiento",
+          "maxLength": 64
+        },
+        "relatedId": {
+          "type": "string",
+          "description": "ID relacionado al elemento o préstamo",
+          "maxLength": 128
+        }
+      },
+      "required": ["id", "type", "title", "performedBy", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/User"
+      },
+      "description": "Colección de usuarios con perfiles y roles"
+    },
+    "/items/{itemId}": {
+      "schema": {
+        "$ref": "#/entities/Item"
+      },
+      "description": "Inventario de artículos y recursos para Tienda y Bar"
+    },
+    "/loans/{loanId}": {
+      "schema": {
+        "$ref": "#/entities/Loan"
+      },
+      "description": "Registro y seguimiento de préstamos y devoluciones"
+    },
+    "/movements/{movementId}": {
+      "schema": {
+        "$ref": "#/entities/Movement"
+      },
+      "description": "Bitácora de movimientos y trazabilidad para el dashboard"
+    }
+  }
+}

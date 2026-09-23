@@ -1,0 +1,83 @@
+<div class="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-amber-500 selection:text-slate-950">
+  
+  <!-- Header / Navigation Bar -->
+  <app-navbar
+    [activeTab]="activeTab()"
+    [overdueCount]="overdueCount()"
+    (tabChange)="activeTab.set($event)"
+    (openAuth)="showAuthModal.set(true)" />
+
+  <!-- Main View Content -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    @switch (activeTab()) {
+      @case ('dashboard') {
+        <app-dashboard
+          (openNewLoan)="openLoanModal(null)"
+          (openNewItem)="openCreateItem('bar')"
+          (navigateToLoans)="activeTab.set('loans')" />
+      }
+      @case ('inventory') {
+        <app-inventory
+          (openAddItem)="openCreateItem($event)"
+          (editItem)="openEditItem($event)"
+          (loanItem)="openLoanModal($event)" />
+      }
+      @case ('loans') {
+        <app-loans
+          (openNewLoan)="openLoanModal(null)" />
+      }
+      @case ('history') {
+        <app-history />
+      }
+      @case ('users') {
+        <app-users />
+      }
+      @case ('subscriptions') {
+        <app-subscriptions />
+      }
+    }
+  </main>
+
+  <!-- Modern Footer -->
+  <footer class="border-t border-slate-900 bg-slate-950/80 py-6 text-center text-xs text-slate-500">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+        <span class="font-medium text-slate-400">Gestión Tienda & Bar</span>
+        <span>•</span>
+        <span>Firebase Cloud Firestore & Authentication</span>
+      </div>
+      <div>
+        <span>Control de Stock, Préstamos y Alertas de Vencimiento</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- MODALS -->
+
+  <!-- Auth Modal -->
+  @if (showAuthModal()) {
+    <app-auth-modal (close)="showAuthModal.set(false)" />
+  }
+
+  <!-- Item Modal (Add / Edit) -->
+  @if (showItemModal()) {
+    <app-item-modal
+      [itemToEdit]="itemToEdit()"
+      [defaultType]="defaultItemType()"
+      (close)="showItemModal.set(false)"
+      (saved)="showItemModal.set(false)" />
+  }
+
+  <!-- Loan Modal (New Loan) -->
+  @if (showLoanModal()) {
+    <app-loan-modal
+      [preselectedItemId]="preselectedItemIdForLoan()"
+      (close)="showLoanModal.set(false)"
+      (saved)="showLoanModal.set(false)" />
+  }
+
+  <!-- Persistent Toasts -->
+  <app-toast-container />
+
+</div>

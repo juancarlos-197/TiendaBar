@@ -6,14 +6,18 @@
       "type": "object",
       "properties": {
         "uid": { "type": "string", "maxLength": 128 },
+        "displayName": { "type": "string", "maxLength": 100 },
         "name": { "type": "string", "maxLength": 100 },
         "email": { "type": "string", "format": "email", "maxLength": 120 },
         "role": { "type": "string", "enum": ["ADMIN", "BAR_OWNER", "USER"] },
+        "estado": { "type": "string", "enum": ["ACTIVO", "INACTIVO", "SUSPENDIDO", "PENDIENTE"] },
+        "registro": { "type": "string", "maxLength": 60 },
+        "phone": { "type": "string", "maxLength": 30 },
         "photoUrl": { "type": "string", "maxLength": 500 },
         "active": { "type": "boolean" },
         "createdAt": { "type": "string", "maxLength": 60 }
       },
-      "required": ["uid", "name", "email", "role", "active"]
+      "required": ["uid", "displayName", "email", "role", "estado", "registro"]
     },
     "bars": {
       "title": "Bar & Nightclub",

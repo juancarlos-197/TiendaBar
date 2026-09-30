@@ -2,6 +2,7 @@ import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { UserProfile, UserRole, UserEstado } from '../../core/models/user.model';
+import { UserFirestoreService, EJEMPLOS_USUARIOS_FIRESTORE } from '../../core/services/user-firestore.service';
 import { UserHttpService } from '../../core/services/user-http.service';
 import { NotificationService } from '../../core/services/notification.service';
 
@@ -10,59 +11,148 @@ import { NotificationService } from '../../core/services/notification.service';
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div class="space-y-8 pb-20 max-w-7xl mx-auto">
+    <div class="space-y-8 pb-24 max-w-7xl mx-auto">
       
-      <!-- 1. Header con Indicadores Node Express & AngularNode -->
-      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-zinc-950 via-zinc-900 to-zinc-950 border border-zinc-800 p-6 rounded-3xl shadow-xl">
-        <div class="space-y-1.5">
-          <div class="flex flex-wrap items-center gap-2">
-            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-semibold">
-              <span class="material-icons text-sm">security</span>
-              Panel de Control de Usuarios
-            </span>
-            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold font-mono">
-              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              HTTP Node.js + Express (AngularNode SSR)
-            </span>
-            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-fuchsia-500/10 border border-fuchsia-500/20 text-fuchsia-400 text-[11px] font-mono">
-              <span class="material-icons text-xs">tune</span>
-              apiInterceptor Activo
-            </span>
+      <!-- 1. Header con Indicadores Cloud Firestore & Node Express -->
+      <div class="relative overflow-hidden bg-gradient-to-r from-zinc-950 via-zinc-900 to-zinc-950 border border-zinc-800 p-6 sm:p-8 rounded-3xl shadow-2xl space-y-5">
+        <div class="absolute -right-20 -top-20 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -left-20 -bottom-20 w-80 h-80 bg-rose-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative">
+          <div class="space-y-2">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-semibold">
+                <span class="material-icons text-sm">security</span>
+                Panel Administrativo
+              </span>
+
+              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold font-mono">
+                <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
+                Base de Datos No Relacional (Cloud Firestore)
+              </span>
+
+              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold font-mono">
+                <span class="material-icons text-xs">dns</span>
+                Node.js + Express (AngularNode)
+              </span>
+            </div>
+
+            <h1 class="font-heading text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
+              Gestión de Usuarios con Cloud Firestore
+            </h1>
+            <p class="text-xs sm:text-sm text-zinc-300 max-w-2xl leading-relaxed">
+              Base de datos no relacional sincronizada en tiempo real mediante la colección <code class="text-amber-400 font-bold bg-amber-500/10 px-1.5 py-0.5 rounded">users</code>. Gestiona y filtra atributos: <code class="text-rose-400">displayName</code>, <code class="text-fuchsia-400">email</code>, <code class="text-amber-400">role</code>, <code class="text-emerald-400">estado</code>, <code class="text-blue-400">registro</code> y <code class="text-zinc-300">acciones</code>.
+            </p>
           </div>
 
-          <h1 class="font-heading text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
-            Gestión Integral de Usuarios
-          </h1>
-          <p class="text-xs sm:text-sm text-zinc-400 max-w-2xl">
-            Administra cuentas con atributos <code class="text-rose-400">displayName</code>, <code class="text-fuchsia-400">email</code>, <code class="text-amber-400">role</code>, <code class="text-emerald-400">estado</code>, <code class="text-blue-400">registro</code> y <code class="text-zinc-300">acciones</code> comunicadas mediante peticiones REST a Node & Express.
-          </p>
+          <!-- Botones de Acción Superior -->
+          <div class="flex flex-wrap items-center gap-2.5 shrink-0">
+            <!-- Botón Cargar Ejemplos en Firestore -->
+            <button
+              type="button"
+              (click)="seedEjemplosFirestore()"
+              [disabled]="userFirestore.isLoading()"
+              class="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-zinc-950 font-black text-xs transition-all shadow-lg shadow-amber-500/20 flex items-center gap-2 active:scale-95 disabled:opacity-50"
+              title="Poblar la colección 'users' de Firestore con datos de prueba realistas"
+            >
+              <span class="material-icons text-base">auto_fix_high</span>
+              Cargar Ejemplos en Firestore
+            </button>
+
+            <!-- Botón Nuevo Usuario -->
+            <button
+              type="button"
+              (click)="openCreateModal()"
+              class="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-rose-600 via-pink-600 to-fuchsia-600 hover:opacity-90 text-white font-extrabold text-xs transition-all shadow-lg shadow-rose-600/25 flex items-center gap-2 active:scale-95"
+            >
+              <span class="material-icons text-base">person_add</span>
+              Nuevo Usuario
+            </button>
+          </div>
         </div>
 
-        <!-- Action Buttons -->
-        <div class="flex items-center gap-3 shrink-0">
-          <button
-            type="button"
-            (click)="reloadUsers()"
-            [disabled]="userHttp.isLoading()"
-            class="px-4 py-2.5 rounded-2xl bg-zinc-800 hover:bg-zinc-750 border border-zinc-700 text-xs font-bold text-zinc-200 transition-all flex items-center gap-2 disabled:opacity-50"
-            title="Recargar desde Node/Express"
-          >
-            <span class="material-icons text-base" [class.animate-spin]="userHttp.isLoading()">sync</span>
-            Recargar
-          </button>
+        <!-- Barra de Estado / Origen de Datos -->
+        <div class="pt-3 border-t border-zinc-800/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-zinc-400">
+          <div class="flex items-center gap-2">
+            <span class="text-zinc-500">Origen de Datos Activo:</span>
+            <div class="inline-flex p-1 rounded-xl bg-zinc-950 border border-zinc-800 text-[11px] font-bold">
+              <button
+                type="button"
+                (click)="switchSource('FIRESTORE')"
+                class="px-3 py-1 rounded-lg transition-all flex items-center gap-1.5"
+                [ngClass]="activeSource === 'FIRESTORE' ? 'bg-amber-500 text-zinc-950 shadow-md font-black' : 'text-zinc-400 hover:text-white'"
+              >
+                <span class="material-icons text-xs">cloud_done</span>
+                Firestore NoSQL (En Vivo)
+              </button>
+              <button
+                type="button"
+                (click)="switchSource('NODE_EXPRESS')"
+                class="px-3 py-1 rounded-lg transition-all flex items-center gap-1.5"
+                [ngClass]="activeSource === 'NODE_EXPRESS' ? 'bg-emerald-600 text-white shadow-md' : 'text-zinc-400 hover:text-white'"
+              >
+                <span class="material-icons text-xs">dns</span>
+                Node.js Express (HTTP)
+              </button>
+            </div>
+          </div>
 
-          <button
-            type="button"
-            (click)="openCreateModal()"
-            class="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-rose-600 via-pink-600 to-fuchsia-600 hover:opacity-90 text-xs font-bold text-white transition-all shadow-lg shadow-rose-600/25 flex items-center gap-2 active:scale-95"
-          >
-            <span class="material-icons text-base">person_add</span>
-            Nuevo Usuario
-          </button>
+          <div class="flex items-center gap-3 text-zinc-400 font-mono text-[11px]">
+            <span>Documentos: <strong class="text-white">{{ activeUsersList().length }}</strong></span>
+            <span>•</span>
+            <span class="text-amber-400 font-bold">Colección: 'users'</span>
+          </div>
         </div>
       </div>
 
-      <!-- 2. Filtros y Búsqueda -->
+      <!-- 2. Ejemplos Rápidos Destacados (Cards de Acceso Rápido) -->
+      <div class="space-y-3">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="material-icons text-amber-400 text-base">stars</span>
+            <h3 class="text-xs font-bold uppercase tracking-wider text-zinc-300">
+              Muestrario de Ejemplos Preconfigurados
+            </h3>
+          </div>
+          <span class="text-[11px] text-zinc-500">
+            Haz clic en un ejemplo para cargarlo o filtrarlo en la tabla
+          </span>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5">
+          @for (ejemplo of ejemplosDisponibles; track ejemplo.uid) {
+            <button
+              type="button"
+              (click)="quickFilterUser(ejemplo)"
+              class="p-2.5 rounded-2xl bg-zinc-900/90 hover:bg-zinc-800/80 border border-zinc-800 hover:border-amber-500/50 text-left transition-all group flex flex-col items-center text-center space-y-1.5 shadow-sm"
+              [title]="'Filtrar por ' + ejemplo.displayName"
+            >
+              <img
+                [src]="ejemplo.photoUrl"
+                [alt]="ejemplo.displayName"
+                class="w-10 h-10 rounded-xl object-cover bg-zinc-950 border border-zinc-800 group-hover:scale-105 transition-transform"
+              />
+              <div class="w-full">
+                <span class="text-[11px] font-bold text-white block truncate leading-tight group-hover:text-amber-300">
+                  {{ ejemplo.displayName.split(' ')[0] }}
+                </span>
+                <span
+                  class="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-full inline-block mt-0.5"
+                  [ngClass]="{
+                    'bg-rose-500/20 text-rose-400': ejemplo.role === 'ADMIN',
+                    'bg-amber-500/20 text-amber-400': ejemplo.role === 'BAR_OWNER',
+                    'bg-emerald-500/20 text-emerald-400': ejemplo.role === 'USER'
+                  }"
+                >
+                  {{ ejemplo.role }}
+                </span>
+              </div>
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- 3. Filtros y Búsqueda -->
       <div class="bg-zinc-900/80 border border-zinc-800 p-4 sm:p-5 rounded-3xl space-y-4">
         <div class="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
           
@@ -73,7 +163,7 @@ import { NotificationService } from '../../core/services/notification.service';
               type="text"
               [(ngModel)]="searchQuery"
               placeholder="Buscar por displayName, correo o teléfono..."
-              class="w-full bg-zinc-950 border border-zinc-800 rounded-2xl pl-10 pr-4 py-2.5 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-rose-500 transition-all"
+              class="w-full bg-zinc-950 border border-zinc-800 rounded-2xl pl-10 pr-4 py-2.5 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-amber-500 transition-all"
             />
             @if (searchQuery) {
               <button
@@ -90,28 +180,28 @@ import { NotificationService } from '../../core/services/notification.service';
             <span class="text-[11px] font-bold text-zinc-500 uppercase mr-1">Rol:</span>
             <button
               (click)="selectedRole = 'ALL'"
-              class="px-3 py-1.5 rounded-xl font-bold transition-all"
-              [ngClass]="selectedRole === 'ALL' ? 'bg-rose-600 text-white shadow-md' : 'bg-zinc-950 border border-zinc-800 text-zinc-400 hover:text-white'"
+              class="px-3 py-1.5 rounded-xl font-bold transition-all text-xs"
+              [ngClass]="selectedRole === 'ALL' ? 'bg-amber-500 text-zinc-950 font-black shadow-md' : 'bg-zinc-950 border border-zinc-800 text-zinc-400 hover:text-white'"
             >
-              Todos ({{ userHttp.users().length }})
+              Todos ({{ activeUsersList().length }})
             </button>
             <button
               (click)="selectedRole = 'ADMIN'"
-              class="px-3 py-1.5 rounded-xl font-bold transition-all"
+              class="px-3 py-1.5 rounded-xl font-bold transition-all text-xs"
               [ngClass]="selectedRole === 'ADMIN' ? 'bg-rose-600 text-white shadow-md' : 'bg-zinc-950 border border-zinc-800 text-zinc-400 hover:text-white'"
             >
               Admins
             </button>
             <button
               (click)="selectedRole = 'BAR_OWNER'"
-              class="px-3 py-1.5 rounded-xl font-bold transition-all"
+              class="px-3 py-1.5 rounded-xl font-bold transition-all text-xs"
               [ngClass]="selectedRole === 'BAR_OWNER' ? 'bg-amber-600 text-white shadow-md' : 'bg-zinc-950 border border-zinc-800 text-zinc-400 hover:text-white'"
             >
               Dueños de Bar
             </button>
             <button
               (click)="selectedRole = 'USER'"
-              class="px-3 py-1.5 rounded-xl font-bold transition-all"
+              class="px-3 py-1.5 rounded-xl font-bold transition-all text-xs"
               [ngClass]="selectedRole === 'USER' ? 'bg-emerald-600 text-white shadow-md' : 'bg-zinc-950 border border-zinc-800 text-zinc-400 hover:text-white'"
             >
               Clientes
@@ -123,7 +213,7 @@ import { NotificationService } from '../../core/services/notification.service';
             <span class="text-[11px] font-bold text-zinc-500 uppercase mr-1">Estado:</span>
             <select
               [(ngModel)]="selectedEstado"
-              class="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-1.5 text-xs text-zinc-300 focus:outline-none focus:border-rose-500"
+              class="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-1.5 text-xs text-zinc-300 focus:outline-none focus:border-amber-500"
             >
               <option value="ALL">Todos los Estados</option>
               <option value="ACTIVO">Activo</option>
@@ -136,7 +226,7 @@ import { NotificationService } from '../../core/services/notification.service';
         </div>
       </div>
 
-      <!-- 3. Tabla Principal de Usuarios: displayName, email, role, estado, registro, acciones -->
+      <!-- 4. Tabla Principal: displayName, email, role, estado, registro, acciones -->
       <div class="bg-zinc-900/90 border border-zinc-800 rounded-3xl overflow-hidden shadow-2xl">
         <div class="overflow-x-auto">
           <table class="w-full text-left text-xs">
@@ -155,21 +245,29 @@ import { NotificationService } from '../../core/services/notification.service';
 
             <!-- Cuerpo de la Tabla -->
             <tbody class="divide-y divide-zinc-800/80">
-              @if (userHttp.isLoading()) {
+              @if (isLoading()) {
                 <tr>
-                  <td colspan="6" class="p-8 text-center text-zinc-400">
+                  <td colspan="6" class="p-10 text-center text-zinc-400">
                     <div class="flex items-center justify-center gap-2">
-                      <span class="material-icons animate-spin text-rose-500">refresh</span>
-                      <span>Consultando datos vía HTTP a Node.js + Express...</span>
+                      <span class="material-icons animate-spin text-amber-400">refresh</span>
+                      <span>Sincronizando con Cloud Firestore NoSQL...</span>
                     </div>
                   </td>
                 </tr>
               } @else if (filteredUsers().length === 0) {
                 <tr>
-                  <td colspan="6" class="p-12 text-center text-zinc-500 space-y-2">
-                    <span class="material-icons text-3xl text-zinc-600">people_outline</span>
-                    <p class="text-sm font-medium text-zinc-400">No se encontraron usuarios con los criterios de búsqueda.</p>
-                    <p class="text-xs text-zinc-600">Prueba ajustando el término o crea un nuevo usuario.</p>
+                  <td colspan="6" class="p-12 text-center text-zinc-500 space-y-3">
+                    <span class="material-icons text-4xl text-zinc-600">people_outline</span>
+                    <p class="text-sm font-semibold text-zinc-300">No hay usuarios en la base de datos que coincidan con la búsqueda.</p>
+                    <div>
+                      <button
+                        (click)="seedEjemplosFirestore()"
+                        class="px-4 py-2 rounded-xl bg-amber-500 text-zinc-950 font-extrabold text-xs shadow-md hover:bg-amber-400 transition-all inline-flex items-center gap-1.5"
+                      >
+                        <span class="material-icons text-sm">auto_fix_high</span>
+                        Cargar Ejemplos en Firestore
+                      </button>
+                    </div>
                   </td>
                 </tr>
               } @else {
@@ -182,10 +280,10 @@ import { NotificationService } from '../../core/services/notification.service';
                         <img
                           [src]="user.photoUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'"
                           [alt]="user.displayName"
-                          class="w-10 h-10 rounded-2xl object-cover bg-zinc-950 border border-zinc-800 shrink-0"
+                          class="w-10 h-10 rounded-2xl object-cover bg-zinc-950 border border-zinc-800 shrink-0 group-hover:border-amber-500/40 transition-colors"
                         />
                         <div class="min-w-0">
-                          <span class="font-extrabold text-white text-sm block group-hover:text-rose-400 transition-colors truncate">
+                          <span class="font-extrabold text-white text-sm block group-hover:text-amber-400 transition-colors truncate">
                             {{ user.displayName }}
                           </span>
                           <div class="flex items-center gap-1.5 text-[10px] text-zinc-500 font-mono mt-0.5">
@@ -270,12 +368,12 @@ import { NotificationService } from '../../core/services/notification.service';
                           </span>
                         </button>
 
-                        <!-- Accion 2: Cambiar Rol rápido -->
+                        <!-- Accion 2: Alternar Rol rápido -->
                         <button
                           type="button"
                           (click)="cycleUserRole(user)"
                           class="p-2 rounded-xl bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-amber-400 transition-all"
-                          title="Alternar Rol (Admin / Bar Owner / Cliente)"
+                          title="Alternar Rol (Admin / Dueño de Bar / Cliente)"
                         >
                           <span class="material-icons text-base">swap_horiz</span>
                         </button>
@@ -295,7 +393,7 @@ import { NotificationService } from '../../core/services/notification.service';
                           type="button"
                           (click)="confirmDeleteUser(user)"
                           class="p-2 rounded-xl bg-zinc-950 hover:bg-rose-950/40 border border-zinc-800 hover:border-rose-500/40 text-zinc-400 hover:text-rose-400 transition-all"
-                          title="Eliminar usuario de Node Express"
+                          title="Eliminar usuario"
                         >
                           <span class="material-icons text-base">delete_outline</span>
                         </button>
@@ -313,15 +411,15 @@ import { NotificationService } from '../../core/services/notification.service';
 
         <!-- Table Footer Info -->
         <div class="p-4 bg-zinc-950 border-t border-zinc-800 flex flex-col sm:flex-row items-center justify-between text-xs text-zinc-500 gap-2">
-          <span>Mostrando {{ filteredUsers().length }} de {{ userHttp.users().length }} usuarios registrados</span>
+          <span>Mostrando {{ filteredUsers().length }} de {{ activeUsersList().length }} usuarios</span>
           <span class="font-mono text-[11px] text-zinc-400 flex items-center gap-1.5">
-            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-            Endpoints: GET, POST, PATCH, DELETE en /api/users
+            <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+            Firestore: Colección 'users' sincronizada en tiempo real
           </span>
         </div>
       </div>
 
-      <!-- 4. Modal para Crear / Editar Usuario -->
+      <!-- 5. Modal para Crear / Editar Usuario -->
       @if (showModal) {
         <div class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
           <div class="bg-zinc-900 border border-zinc-800 rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-6 shadow-2xl relative">
@@ -336,15 +434,15 @@ import { NotificationService } from '../../core/services/notification.service';
 
             <!-- Modal Header -->
             <div class="space-y-1">
-              <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-bold">
+              <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold">
                 <span class="material-icons text-sm">{{ isEditing ? 'edit' : 'person_add' }}</span>
-                {{ isEditing ? 'Actualizar Usuario en Node Express' : 'Nuevo Usuario en Node Express' }}
+                {{ isEditing ? 'Editar en Cloud Firestore NoSQL' : 'Nuevo Usuario en Cloud Firestore' }}
               </div>
               <h3 class="font-heading text-xl font-black text-white">
                 {{ isEditing ? 'Editar Atributos del Usuario' : 'Registrar Nuevo Usuario' }}
               </h3>
               <p class="text-xs text-zinc-400">
-                Los datos se envían por HTTP al servidor Express interceptados por <code>apiInterceptor</code>.
+                Se guardará inmediatamente en la colección <code class="text-amber-400">users</code> de Firestore.
               </p>
             </div>
 
@@ -362,7 +460,7 @@ import { NotificationService } from '../../core/services/notification.service';
                   name="displayName"
                   required
                   placeholder="Ej: Sofia Herrera"
-                  class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-rose-500"
+                  class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-amber-500"
                 />
               </div>
 
@@ -377,7 +475,7 @@ import { NotificationService } from '../../core/services/notification.service';
                   name="email"
                   required
                   placeholder="Ej: sofia@nocturna.club"
-                  class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-rose-500 font-mono"
+                  class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-amber-500 font-mono"
                 />
               </div>
 
@@ -392,7 +490,7 @@ import { NotificationService } from '../../core/services/notification.service';
                   <select
                     [(ngModel)]="formData.role"
                     name="role"
-                    class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-zinc-100 focus:outline-none focus:border-rose-500"
+                    class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-zinc-100 focus:outline-none focus:border-amber-500"
                   >
                     <option value="USER">Cliente (USER)</option>
                     <option value="BAR_OWNER">Dueño de Bar (BAR_OWNER)</option>
@@ -408,7 +506,7 @@ import { NotificationService } from '../../core/services/notification.service';
                   <select
                     [(ngModel)]="formData.estado"
                     name="estado"
-                    class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-zinc-100 focus:outline-none focus:border-rose-500"
+                    class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-zinc-100 focus:outline-none focus:border-amber-500"
                   >
                     <option value="ACTIVO">ACTIVO</option>
                     <option value="SUSPENDIDO">SUSPENDIDO</option>
@@ -427,7 +525,7 @@ import { NotificationService } from '../../core/services/notification.service';
                   [(ngModel)]="formData.phone"
                   name="phone"
                   placeholder="+57 300 123 4567"
-                  class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-rose-500 font-mono"
+                  class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-amber-500 font-mono"
                 />
               </div>
 
@@ -443,10 +541,10 @@ import { NotificationService } from '../../core/services/notification.service';
                 <button
                   type="submit"
                   [disabled]="!formData.displayName || !formData.email"
-                  class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-fuchsia-600 hover:opacity-90 text-white font-extrabold transition-all shadow-lg shadow-rose-600/30 disabled:opacity-50 flex items-center gap-1.5"
+                  class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-zinc-950 font-black transition-all shadow-lg shadow-amber-500/30 disabled:opacity-50 flex items-center gap-1.5"
                 >
-                  <span class="material-icons text-sm">save</span>
-                  {{ isEditing ? 'Guardar Cambios (PATCH)' : 'Crear Usuario (POST)' }}
+                  <span class="material-icons text-sm">cloud_upload</span>
+                  {{ isEditing ? 'Actualizar en Firestore' : 'Guardar en Firestore' }}
                 </button>
               </div>
 
@@ -460,8 +558,12 @@ import { NotificationService } from '../../core/services/notification.service';
   `
 })
 export class UsuariosComponent implements OnInit {
+  public userFirestore = inject(UserFirestoreService);
   public userHttp = inject(UserHttpService);
   private notify = inject(NotificationService);
+
+  public activeSource: 'FIRESTORE' | 'NODE_EXPRESS' = 'FIRESTORE';
+  public ejemplosDisponibles = EJEMPLOS_USUARIOS_FIRESTORE;
 
   public searchQuery = '';
   public selectedRole: 'ALL' | UserRole = 'ALL';
@@ -487,15 +589,24 @@ export class UsuariosComponent implements OnInit {
   };
 
   ngOnInit() {
-    this.reloadUsers();
-  }
-
-  public reloadUsers() {
+    this.userFirestore.initFirestoreSync();
     this.userHttp.loadUsers().subscribe();
   }
 
+  public activeUsersList = computed(() => {
+    return this.activeSource === 'FIRESTORE'
+      ? this.userFirestore.users()
+      : this.userHttp.users();
+  });
+
+  public isLoading = computed(() => {
+    return this.activeSource === 'FIRESTORE'
+      ? this.userFirestore.isLoading()
+      : this.userHttp.isLoading();
+  });
+
   public filteredUsers = computed(() => {
-    let list = this.userHttp.users();
+    let list = this.activeUsersList();
     const query = this.searchQuery.trim().toLowerCase();
 
     if (this.selectedRole !== 'ALL') {
@@ -519,10 +630,34 @@ export class UsuariosComponent implements OnInit {
     return list;
   });
 
+  public switchSource(source: 'FIRESTORE' | 'NODE_EXPRESS') {
+    this.activeSource = source;
+    if (source === 'FIRESTORE') {
+      this.notify.info('Visualizando datos en tiempo real de Cloud Firestore (NoSQL)');
+    } else {
+      this.userHttp.loadUsers().subscribe();
+      this.notify.info('Visualizando datos del servidor Node.js + Express (HTTP REST)');
+    }
+  }
+
+  // Seed examples directly into Firestore
+  public seedEjemplosFirestore() {
+    this.userFirestore.seedExampleUsers(true);
+  }
+
+  // Quick filter by clicking an example chip
+  public quickFilterUser(ejemplo: UserProfile) {
+    this.searchQuery = ejemplo.displayName;
+  }
+
   // Action: Toggle Status quickly
   public toggleUserStatus(user: UserProfile) {
     const newEstado: UserEstado = user.estado === 'ACTIVO' ? 'SUSPENDIDO' : 'ACTIVO';
-    this.userHttp.updateUser(user.uid, { estado: newEstado }).subscribe();
+    if (this.activeSource === 'FIRESTORE') {
+      this.userFirestore.updateUser(user.uid, { estado: newEstado });
+    } else {
+      this.userHttp.updateUser(user.uid, { estado: newEstado }).subscribe();
+    }
   }
 
   // Action: Cycle Role quickly
@@ -532,7 +667,11 @@ export class UsuariosComponent implements OnInit {
     else if (user.role === 'BAR_OWNER') newRole = 'ADMIN';
     else newRole = 'USER';
 
-    this.userHttp.updateUser(user.uid, { role: newRole }).subscribe();
+    if (this.activeSource === 'FIRESTORE') {
+      this.userFirestore.updateUser(user.uid, { role: newRole });
+    } else {
+      this.userHttp.updateUser(user.uid, { role: newRole }).subscribe();
+    }
   }
 
   // Action: Open Create Modal
@@ -572,32 +711,59 @@ export class UsuariosComponent implements OnInit {
     if (!this.formData.displayName || !this.formData.email) return;
 
     if (this.isEditing && this.editingUid) {
-      this.userHttp.updateUser(this.editingUid, {
-        displayName: this.formData.displayName,
-        email: this.formData.email,
-        role: this.formData.role,
-        estado: this.formData.estado,
-        phone: this.formData.phone
-      }).subscribe(() => {
+      if (this.activeSource === 'FIRESTORE') {
+        this.userFirestore.updateUser(this.editingUid, {
+          displayName: this.formData.displayName,
+          email: this.formData.email,
+          role: this.formData.role,
+          estado: this.formData.estado,
+          phone: this.formData.phone
+        });
         this.closeModal();
-      });
+      } else {
+        this.userHttp.updateUser(this.editingUid, {
+          displayName: this.formData.displayName,
+          email: this.formData.email,
+          role: this.formData.role,
+          estado: this.formData.estado,
+          phone: this.formData.phone
+        }).subscribe(() => {
+          this.closeModal();
+        });
+      }
     } else {
-      this.userHttp.createUser({
-        displayName: this.formData.displayName,
-        email: this.formData.email,
-        role: this.formData.role,
-        estado: this.formData.estado,
-        phone: this.formData.phone
-      }).subscribe(() => {
+      if (this.activeSource === 'FIRESTORE') {
+        this.userFirestore.createUser({
+          displayName: this.formData.displayName,
+          email: this.formData.email,
+          role: this.formData.role,
+          estado: this.formData.estado,
+          phone: this.formData.phone
+        });
         this.closeModal();
-      });
+      } else {
+        this.userHttp.createUser({
+          displayName: this.formData.displayName,
+          email: this.formData.email,
+          role: this.formData.role,
+          estado: this.formData.estado,
+          phone: this.formData.phone
+        }).subscribe(() => {
+          this.closeModal();
+        });
+      }
     }
   }
 
   // Action: Delete user
   public confirmDeleteUser(user: UserProfile) {
-    if (confirm(`¿Estás seguro de eliminar al usuario "${user.displayName}" del servidor Node Express?`)) {
-      this.userHttp.deleteUser(user.uid).subscribe();
+    const targetDb = this.activeSource === 'FIRESTORE' ? 'Cloud Firestore NoSQL' : 'Node Express';
+    if (confirm(`¿Estás seguro de eliminar a "${user.displayName}" de ${targetDb}?`)) {
+      if (this.activeSource === 'FIRESTORE') {
+        this.userFirestore.deleteUser(user.uid);
+      } else {
+        this.userHttp.deleteUser(user.uid).subscribe();
+      }
     }
   }
 }

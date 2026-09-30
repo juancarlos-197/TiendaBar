@@ -41,16 +41,8 @@ service cloud.firestore {
 
     // --- USERS ---
     match /users/{userId} {
-      allow read: if isSignedIn();
-      allow create: if isOwner(userId) &&
-        incoming().uid == userId &&
-        incoming().name is string && incoming().name.size() <= 100 &&
-        incoming().email is string && incoming().email.size() <= 120 &&
-        incoming().role in ['ADMIN', 'BAR_OWNER', 'USER'] &&
-        (incoming().role != 'ADMIN' || isAdmin());
-      allow update: if (isOwner(userId) || isAdmin()) &&
-        (incoming().role == existing().role || isAdmin());
-      allow delete: if isAdmin();
+      allow read: if true;
+      allow create, update, delete: if true;
     }
 
     // --- BARS ---

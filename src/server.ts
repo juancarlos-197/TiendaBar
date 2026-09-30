@@ -6,6 +6,7 @@ import {
 } from '@angular/ssr/node';
 import express from 'express';
 import {join} from 'node:path';
+import { mysqlEngine } from './server/mysql-database';
 
 const browserDistFolder = join(import.meta.dirname, '../browser');
 
@@ -156,6 +157,99 @@ app.delete('/api/users/:uid', (req, res): void => {
 
   const removed = usersDatabase.splice(index, 1);
   res.json({ success: true, message: 'Usuario eliminado del sistema', data: removed[0] });
+  return;
+});
+
+// --- MySQL Relational Database Endpoints ---
+app.get('/api/mysql/users', (req, res): void => {
+  const result = mysqlEngine.getJoinedUsers();
+  res.json({
+    success: true,
+    engine: 'MySQL 8.0 (InnoDB)',
+    query: result.query,
+    count: result.count,
+    data: result.rows
+  });
+  return;
+});
+
+app.post('/api/mysql/users', (req, res): void => {
+  const { displayName, email, role, estado, phone, barId } = req.body;
+  if (!displayName || !email) {
+    res.status(400).json({ success: false, message: 'displayName y email son obligatorios en MySQL' });
+    return;
+  }
+
+  const result = mysqlEngine.insertUser({
+    displayName,
+    email,
+    role: role || 'USER',
+    estado: estado || 'ACTIVO',
+    phone,
+    barId: barId ? Number(barId) : null
+  });
+
+  res.status(201).json({
+    success: true,
+    message: 'Usuario insertado en tabla relacional usuarios (MySQL)',
+    query: result.query,
+    data: result.row
+  });
+  return;
+});
+
+app.patch('/api/mysql/users/:id', (req, res): void => {
+  const id = Number(req.params.id);
+  const result = mysqlEngine.updateUser(id, req.body);
+  if (!result) {
+    res.status(404).json({ success: false, message: 'Registro no encontrado en tabla usuarios' });
+    return;
+  }
+
+  res.json({
+    success: true,
+    message: 'Registro relacional actualizado con éxito',
+    query: result.query,
+    data: result.row
+  });
+  return;
+});
+
+app.delete('/api/mysql/users/:id', (req, res): void => {
+  const id = Number(req.params.id);
+  const result = mysqlEngine.deleteUser(id);
+  if (!result.deleted) {
+    res.status(404).json({ success: false, message: 'Registro no encontrado para eliminar' });
+    return;
+  }
+
+  res.json({
+    success: true,
+    message: 'Registro eliminado físicamente de MySQL',
+    query: result.query
+  });
+  return;
+});
+
+app.post('/api/mysql/seed', (req, res): void => {
+  const result = mysqlEngine.seedDatabase();
+  res.json({
+    success: true,
+    message: 'Base de datos MySQL poblada con 8 ejemplos relacionales y claves foráneas',
+    query: result.query,
+    count: result.count
+  });
+  return;
+});
+
+app.get('/api/mysql/schema', (req, res): void => {
+  res.json({
+    success: true,
+    database: 'nocturna_db',
+    ddl: mysqlEngine.getDdlScript(),
+    auditoria: mysqlEngine.getAuditoria(),
+    bares: mysqlEngine.getBares()
+  });
   return;
 });
 

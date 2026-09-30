@@ -2,9 +2,12 @@ import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { UserProfile, UserRole, UserEstado } from '../../core/models/user.model';
+import { UserMysqlService, MysqlUser } from '../../core/services/user-mysql.service';
 import { UserFirestoreService, EJEMPLOS_USUARIOS_FIRESTORE } from '../../core/services/user-firestore.service';
 import { UserHttpService } from '../../core/services/user-http.service';
 import { NotificationService } from '../../core/services/notification.service';
+
+type DatabaseMode = 'MYSQL_RELATIONAL' | 'FIRESTORE' | 'NODE_EXPRESS';
 
 @Component({
   selector: 'app-usuarios',
@@ -13,9 +16,9 @@ import { NotificationService } from '../../core/services/notification.service';
   template: `
     <div class="space-y-8 pb-24 max-w-7xl mx-auto">
       
-      <!-- 1. Header con Indicadores Cloud Firestore & Node Express -->
+      <!-- 1. Header con Indicadores de Base de Datos -->
       <div class="relative overflow-hidden bg-gradient-to-r from-zinc-950 via-zinc-900 to-zinc-950 border border-zinc-800 p-6 sm:p-8 rounded-3xl shadow-2xl space-y-5">
-        <div class="absolute -right-20 -top-20 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -right-20 -top-20 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
         <div class="absolute -left-20 -bottom-20 w-80 h-80 bg-rose-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
         <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative">
@@ -26,37 +29,48 @@ import { NotificationService } from '../../core/services/notification.service';
                 Panel Administrativo
               </span>
 
-              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold font-mono">
-                <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
-                Base de Datos No Relacional (Cloud Firestore)
+              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-xs font-bold font-mono">
+                <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse"></span>
+                Base de Datos Relacional (MySQL / InnoDB)
               </span>
 
-              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold font-mono">
-                <span class="material-icons text-xs">dns</span>
-                Node.js + Express (AngularNode)
+              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold font-mono">
+                <span class="material-icons text-xs">storage</span>
+                NoSQL (Cloud Firestore)
               </span>
             </div>
 
-            <h1 class="font-heading text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
-              Gestión de Usuarios con Cloud Firestore
+            <h1 class="font-heading text-2xl sm:text-4xl font-extrabold text-white tracking-tight flex items-center gap-3">
+              <span>Gestión de Usuarios con Base de Datos Relacional MySQL</span>
             </h1>
-            <p class="text-xs sm:text-sm text-zinc-300 max-w-2xl leading-relaxed">
-              Base de datos no relacional sincronizada en tiempo real mediante la colección <code class="text-amber-400 font-bold bg-amber-500/10 px-1.5 py-0.5 rounded">users</code>. Gestiona y filtra atributos: <code class="text-rose-400">displayName</code>, <code class="text-fuchsia-400">email</code>, <code class="text-amber-400">role</code>, <code class="text-emerald-400">estado</code>, <code class="text-blue-400">registro</code> y <code class="text-zinc-300">acciones</code>.
+            <p class="text-xs sm:text-sm text-zinc-300 max-w-3xl leading-relaxed">
+              Estructura normalizada en tablas relacionales (<code class="text-cyan-400 font-bold bg-cyan-950/60 px-1.5 py-0.5 rounded border border-cyan-800">usuarios</code>, <code class="text-amber-400 font-bold bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-800">roles</code>, <code class="text-emerald-400 font-bold bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-800">estados</code> y <code class="text-fuchsia-400 font-bold bg-fuchsia-950/60 px-1.5 py-0.5 rounded border border-fuchsia-800">bares_afiliados</code>) con claves foráneas (<code class="text-cyan-300">FK</code>) y consultas <code class="text-cyan-400 font-mono">INNER JOIN</code>.
             </p>
           </div>
 
           <!-- Botones de Acción Superior -->
           <div class="flex flex-wrap items-center gap-2.5 shrink-0">
-            <!-- Botón Cargar Ejemplos en Firestore -->
+            <!-- Botón Cargar Ejemplos en MySQL -->
             <button
               type="button"
-              (click)="seedEjemplosFirestore()"
-              [disabled]="userFirestore.isLoading()"
-              class="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-zinc-950 font-black text-xs transition-all shadow-lg shadow-amber-500/20 flex items-center gap-2 active:scale-95 disabled:opacity-50"
-              title="Poblar la colección 'users' de Firestore con datos de prueba realistas"
+              (click)="seedEjemplos()"
+              [disabled]="isLoading()"
+              class="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-zinc-950 font-black text-xs transition-all shadow-lg shadow-cyan-500/25 flex items-center gap-2 active:scale-95 disabled:opacity-50"
+              title="Poblar las tablas relacionales de MySQL con 8 usuarios de ejemplo y sus claves foráneas"
             >
-              <span class="material-icons text-base">auto_fix_high</span>
-              Cargar Ejemplos en Firestore
+              <span class="material-icons text-base">cloud_sync</span>
+              Cargar Ejemplos en MySQL
+            </button>
+
+            <!-- Ver Esquema SQL & Consultas DDL -->
+            <button
+              type="button"
+              (click)="showSqlModal = true"
+              class="px-4 py-2.5 rounded-2xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-cyan-300 font-bold text-xs transition-all flex items-center gap-2"
+              title="Ver el script DDL (CREATE TABLE, FOREIGN KEYS) y la última consulta SELECT JOIN ejecutada"
+            >
+              <span class="material-icons text-base text-cyan-400">code</span>
+              Esquema DDL & SQL
             </button>
 
             <!-- Botón Nuevo Usuario -->
@@ -71,60 +85,95 @@ import { NotificationService } from '../../core/services/notification.service';
           </div>
         </div>
 
-        <!-- Barra de Estado / Origen de Datos -->
-        <div class="pt-3 border-t border-zinc-800/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-zinc-400">
-          <div class="flex items-center gap-2">
-            <span class="text-zinc-500">Origen de Datos Activo:</span>
-            <div class="inline-flex p-1 rounded-xl bg-zinc-950 border border-zinc-800 text-[11px] font-bold">
+        <!-- Selector de Motor de Base de Datos -->
+        <div class="pt-3 border-t border-zinc-800/80 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-xs text-zinc-400">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="text-zinc-500 font-bold">Motor de Base de Datos:</span>
+            <div class="inline-flex p-1 rounded-2xl bg-zinc-950 border border-zinc-800 text-[11px] font-bold">
+              
+              <!-- Tab 1: MySQL Relacional -->
               <button
                 type="button"
-                (click)="switchSource('FIRESTORE')"
-                class="px-3 py-1 rounded-lg transition-all flex items-center gap-1.5"
-                [ngClass]="activeSource === 'FIRESTORE' ? 'bg-amber-500 text-zinc-950 shadow-md font-black' : 'text-zinc-400 hover:text-white'"
+                (click)="switchMode('MYSQL_RELATIONAL')"
+                class="px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5"
+                [ngClass]="activeMode === 'MYSQL_RELATIONAL' ? 'bg-cyan-500 text-zinc-950 shadow-md font-black' : 'text-zinc-400 hover:text-white'"
+              >
+                <span class="material-icons text-xs">table_view</span>
+                MySQL Relacional (SQL / JOIN)
+              </button>
+
+              <!-- Tab 2: Firestore NoSQL -->
+              <button
+                type="button"
+                (click)="switchMode('FIRESTORE')"
+                class="px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5"
+                [ngClass]="activeMode === 'FIRESTORE' ? 'bg-amber-500 text-zinc-950 shadow-md font-black' : 'text-zinc-400 hover:text-white'"
               >
                 <span class="material-icons text-xs">cloud_done</span>
-                Firestore NoSQL (En Vivo)
+                Firestore NoSQL (Colección)
               </button>
+
+              <!-- Tab 3: Node Express REST -->
               <button
                 type="button"
-                (click)="switchSource('NODE_EXPRESS')"
-                class="px-3 py-1 rounded-lg transition-all flex items-center gap-1.5"
-                [ngClass]="activeSource === 'NODE_EXPRESS' ? 'bg-emerald-600 text-white shadow-md' : 'text-zinc-400 hover:text-white'"
+                (click)="switchMode('NODE_EXPRESS')"
+                class="px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5"
+                [ngClass]="activeMode === 'NODE_EXPRESS' ? 'bg-emerald-600 text-white shadow-md' : 'text-zinc-400 hover:text-white'"
               >
                 <span class="material-icons text-xs">dns</span>
-                Node.js Express (HTTP)
+                Node Express (REST)
               </button>
+
             </div>
           </div>
 
           <div class="flex items-center gap-3 text-zinc-400 font-mono text-[11px]">
-            <span>Documentos: <strong class="text-white">{{ activeUsersList().length }}</strong></span>
+            <span>Registros: <strong class="text-white">{{ displayUsers().length }}</strong></span>
             <span>•</span>
-            <span class="text-amber-400 font-bold">Colección: 'users'</span>
+            <span [ngClass]="activeMode === 'MYSQL_RELATIONAL' ? 'text-cyan-400 font-bold' : 'text-amber-400 font-bold'">
+              {{ activeMode === 'MYSQL_RELATIONAL' ? 'Tablas: usuarios ⨝ roles ⨝ estados' : activeMode === 'FIRESTORE' ? "Colección: 'users'" : 'Array Express' }}
+            </span>
           </div>
         </div>
+
+        <!-- Consulta SQL Ejecutada en Tiempo Real (Banner interactivo) -->
+        @if (activeMode === 'MYSQL_RELATIONAL' && userMysql.lastQuery()) {
+          <div class="p-3 bg-zinc-950/90 border border-cyan-900/40 rounded-2xl flex items-center justify-between gap-3 text-[11px] font-mono">
+            <div class="flex items-center gap-2 text-cyan-300 min-w-0">
+              <span class="material-icons text-xs text-cyan-400 shrink-0">terminal</span>
+              <span class="text-zinc-500 shrink-0">Última Consulta SQL:</span>
+              <span class="truncate text-cyan-200">{{ userMysql.lastQuery() }}</span>
+            </div>
+            <button
+              (click)="showSqlModal = true"
+              class="text-xs text-cyan-400 hover:underline shrink-0 font-bold"
+            >
+              Ver Consulta Completa →
+            </button>
+          </div>
+        }
       </div>
 
-      <!-- 2. Ejemplos Rápidos Destacados (Cards de Acceso Rápido) -->
+      <!-- 2. Galería de Ejemplos Relacionales -->
       <div class="space-y-3">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">
-            <span class="material-icons text-amber-400 text-base">stars</span>
+            <span class="material-icons text-cyan-400 text-base">hub</span>
             <h3 class="text-xs font-bold uppercase tracking-wider text-zinc-300">
-              Muestrario de Ejemplos Preconfigurados
+              Ejemplos Relacionales Preconfigurados (Con Claves Foráneas)
             </h3>
           </div>
           <span class="text-[11px] text-zinc-500">
-            Haz clic en un ejemplo para cargarlo o filtrarlo en la tabla
+            Haz clic en un ejemplo para filtrar la tabla
           </span>
         </div>
 
         <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5">
-          @for (ejemplo of ejemplosDisponibles; track ejemplo.uid) {
+          @for (ejemplo of ejemplosRapidos; track ejemplo.uid) {
             <button
               type="button"
-              (click)="quickFilterUser(ejemplo)"
-              class="p-2.5 rounded-2xl bg-zinc-900/90 hover:bg-zinc-800/80 border border-zinc-800 hover:border-amber-500/50 text-left transition-all group flex flex-col items-center text-center space-y-1.5 shadow-sm"
+              (click)="searchQuery = ejemplo.displayName"
+              class="p-2.5 rounded-2xl bg-zinc-900/90 hover:bg-zinc-800/80 border border-zinc-800 hover:border-cyan-500/50 text-left transition-all group flex flex-col items-center text-center space-y-1.5 shadow-sm"
               [title]="'Filtrar por ' + ejemplo.displayName"
             >
               <img
@@ -133,7 +182,7 @@ import { NotificationService } from '../../core/services/notification.service';
                 class="w-10 h-10 rounded-xl object-cover bg-zinc-950 border border-zinc-800 group-hover:scale-105 transition-transform"
               />
               <div class="w-full">
-                <span class="text-[11px] font-bold text-white block truncate leading-tight group-hover:text-amber-300">
+                <span class="text-[11px] font-bold text-white block truncate leading-tight group-hover:text-cyan-300">
                   {{ ejemplo.displayName.split(' ')[0] }}
                 </span>
                 <span
@@ -163,7 +212,7 @@ import { NotificationService } from '../../core/services/notification.service';
               type="text"
               [(ngModel)]="searchQuery"
               placeholder="Buscar por displayName, correo o teléfono..."
-              class="w-full bg-zinc-950 border border-zinc-800 rounded-2xl pl-10 pr-4 py-2.5 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-amber-500 transition-all"
+              class="w-full bg-zinc-950 border border-zinc-800 rounded-2xl pl-10 pr-4 py-2.5 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-cyan-500 transition-all"
             />
             @if (searchQuery) {
               <button
@@ -181,9 +230,9 @@ import { NotificationService } from '../../core/services/notification.service';
             <button
               (click)="selectedRole = 'ALL'"
               class="px-3 py-1.5 rounded-xl font-bold transition-all text-xs"
-              [ngClass]="selectedRole === 'ALL' ? 'bg-amber-500 text-zinc-950 font-black shadow-md' : 'bg-zinc-950 border border-zinc-800 text-zinc-400 hover:text-white'"
+              [ngClass]="selectedRole === 'ALL' ? 'bg-cyan-500 text-zinc-950 font-black shadow-md' : 'bg-zinc-950 border border-zinc-800 text-zinc-400 hover:text-white'"
             >
-              Todos ({{ activeUsersList().length }})
+              Todos ({{ displayUsers().length }})
             </button>
             <button
               (click)="selectedRole = 'ADMIN'"
@@ -213,7 +262,7 @@ import { NotificationService } from '../../core/services/notification.service';
             <span class="text-[11px] font-bold text-zinc-500 uppercase mr-1">Estado:</span>
             <select
               [(ngModel)]="selectedEstado"
-              class="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-1.5 text-xs text-zinc-300 focus:outline-none focus:border-amber-500"
+              class="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-1.5 text-xs text-zinc-300 focus:outline-none focus:border-cyan-500"
             >
               <option value="ALL">Todos los Estados</option>
               <option value="ACTIVO">Activo</option>
@@ -234,12 +283,34 @@ import { NotificationService } from '../../core/services/notification.service';
             <!-- Encabezados de Columna -->
             <thead class="bg-zinc-950 border-b border-zinc-800 text-zinc-400 uppercase tracking-wider font-bold text-[11px]">
               <tr>
-                <th class="py-4 px-5">displayName (Usuario)</th>
-                <th class="py-4 px-5">email</th>
-                <th class="py-4 px-5">role</th>
-                <th class="py-4 px-5">estado</th>
-                <th class="py-4 px-5">registro</th>
-                <th class="py-4 px-5 text-right">acciones</th>
+                <th class="py-4 px-5">
+                  <div class="flex items-center gap-1">
+                    <span>Nombre / Usuario</span>
+                    <span class="text-[9px] text-cyan-400 font-mono font-normal">({{ activeMode === 'MYSQL_RELATIONAL' ? 'displayName • PK' : 'displayName' }})</span>
+                  </div>
+                </th>
+                <th class="py-4 px-5">Correo Electrónico (email)</th>
+                <th class="py-4 px-5">
+                  <div class="flex items-center gap-1">
+                    <span>Rol (role)</span>
+                    @if (activeMode === 'MYSQL_RELATIONAL') {
+                      <span class="text-[9px] text-cyan-400 font-mono font-normal">FK: roles</span>
+                    }
+                  </div>
+                </th>
+                <th class="py-4 px-5">
+                  <div class="flex items-center gap-1">
+                    <span>Estado (estado)</span>
+                    @if (activeMode === 'MYSQL_RELATIONAL') {
+                      <span class="text-[9px] text-cyan-400 font-mono font-normal">FK: estados</span>
+                    }
+                  </div>
+                </th>
+                <th class="py-4 px-5">Fecha de Registro</th>
+                @if (activeMode === 'MYSQL_RELATIONAL') {
+                  <th class="py-4 px-5">Bar Asignado (FK: bar_id)</th>
+                }
+                <th class="py-4 px-5 text-right">Acciones</th>
               </tr>
             </thead>
 
@@ -247,25 +318,25 @@ import { NotificationService } from '../../core/services/notification.service';
             <tbody class="divide-y divide-zinc-800/80">
               @if (isLoading()) {
                 <tr>
-                  <td colspan="6" class="p-10 text-center text-zinc-400">
+                  <td [attr.colspan]="activeMode === 'MYSQL_RELATIONAL' ? 7 : 6" class="p-10 text-center text-zinc-400">
                     <div class="flex items-center justify-center gap-2">
-                      <span class="material-icons animate-spin text-amber-400">refresh</span>
-                      <span>Sincronizando con Cloud Firestore NoSQL...</span>
+                      <span class="material-icons animate-spin text-cyan-400">refresh</span>
+                      <span>Consultando datos en la base de datos...</span>
                     </div>
                   </td>
                 </tr>
               } @else if (filteredUsers().length === 0) {
                 <tr>
-                  <td colspan="6" class="p-12 text-center text-zinc-500 space-y-3">
-                    <span class="material-icons text-4xl text-zinc-600">people_outline</span>
-                    <p class="text-sm font-semibold text-zinc-300">No hay usuarios en la base de datos que coincidan con la búsqueda.</p>
+                  <td [attr.colspan]="activeMode === 'MYSQL_RELATIONAL' ? 7 : 6" class="p-12 text-center text-zinc-500 space-y-3">
+                    <span class="material-icons text-4xl text-zinc-600">dns</span>
+                    <p class="text-sm font-semibold text-zinc-300">No se encontraron registros con los criterios solicitados.</p>
                     <div>
                       <button
-                        (click)="seedEjemplosFirestore()"
-                        class="px-4 py-2 rounded-xl bg-amber-500 text-zinc-950 font-extrabold text-xs shadow-md hover:bg-amber-400 transition-all inline-flex items-center gap-1.5"
+                        (click)="seedEjemplos()"
+                        class="px-4 py-2 rounded-xl bg-cyan-500 text-zinc-950 font-extrabold text-xs shadow-md hover:bg-cyan-400 transition-all inline-flex items-center gap-1.5"
                       >
-                        <span class="material-icons text-sm">auto_fix_high</span>
-                        Cargar Ejemplos en Firestore
+                        <span class="material-icons text-sm">cloud_sync</span>
+                        Cargar Ejemplos en MySQL
                       </button>
                     </div>
                   </td>
@@ -280,10 +351,10 @@ import { NotificationService } from '../../core/services/notification.service';
                         <img
                           [src]="user.photoUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'"
                           [alt]="user.displayName"
-                          class="w-10 h-10 rounded-2xl object-cover bg-zinc-950 border border-zinc-800 shrink-0 group-hover:border-amber-500/40 transition-colors"
+                          class="w-10 h-10 rounded-2xl object-cover bg-zinc-950 border border-zinc-800 shrink-0 group-hover:border-cyan-500/40 transition-colors"
                         />
                         <div class="min-w-0">
-                          <span class="font-extrabold text-white text-sm block group-hover:text-amber-400 transition-colors truncate">
+                          <span class="font-extrabold text-white text-sm block group-hover:text-cyan-300 transition-colors truncate">
                             {{ user.displayName }}
                           </span>
                           <div class="flex items-center gap-1.5 text-[10px] text-zinc-500 font-mono mt-0.5">
@@ -352,6 +423,20 @@ import { NotificationService } from '../../core/services/notification.service';
                       </div>
                     </td>
 
+                    <!-- 5.1 Bar Asignado (solo en modo MySQL) -->
+                    @if (activeMode === 'MYSQL_RELATIONAL') {
+                      <td class="py-4 px-5">
+                        @if (getAsignado(user)) {
+                          <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-cyan-950/50 border border-cyan-800 text-cyan-300 font-medium text-[11px]">
+                            <span class="material-icons text-xs">storefront</span>
+                            {{ getAsignado(user) }}
+                          </span>
+                        } @else {
+                          <span class="text-zinc-600 italic text-[11px]">Sin bar asignado</span>
+                        }
+                      </td>
+                    }
+
                     <!-- 6. acciones -->
                     <td class="py-4 px-5 text-right">
                       <div class="flex items-center justify-end gap-1.5">
@@ -372,7 +457,7 @@ import { NotificationService } from '../../core/services/notification.service';
                         <button
                           type="button"
                           (click)="cycleUserRole(user)"
-                          class="p-2 rounded-xl bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-amber-400 transition-all"
+                          class="p-2 rounded-xl bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-cyan-400 transition-all"
                           title="Alternar Rol (Admin / Dueño de Bar / Cliente)"
                         >
                           <span class="material-icons text-base">swap_horiz</span>
@@ -411,10 +496,10 @@ import { NotificationService } from '../../core/services/notification.service';
 
         <!-- Table Footer Info -->
         <div class="p-4 bg-zinc-950 border-t border-zinc-800 flex flex-col sm:flex-row items-center justify-between text-xs text-zinc-500 gap-2">
-          <span>Mostrando {{ filteredUsers().length }} de {{ activeUsersList().length }} usuarios</span>
+          <span>Mostrando {{ filteredUsers().length }} de {{ displayUsers().length }} registros</span>
           <span class="font-mono text-[11px] text-zinc-400 flex items-center gap-1.5">
-            <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
-            Firestore: Colección 'users' sincronizada en tiempo real
+            <span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
+            {{ activeMode === 'MYSQL_RELATIONAL' ? 'Motor: MySQL 8.0 InnoDB (Relacional)' : activeMode === 'FIRESTORE' ? 'Motor: Cloud Firestore (NoSQL)' : 'Motor: Node.js Express' }}
           </span>
         </div>
       </div>
@@ -434,15 +519,15 @@ import { NotificationService } from '../../core/services/notification.service';
 
             <!-- Modal Header -->
             <div class="space-y-1">
-              <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold">
+              <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-bold">
                 <span class="material-icons text-sm">{{ isEditing ? 'edit' : 'person_add' }}</span>
-                {{ isEditing ? 'Editar en Cloud Firestore NoSQL' : 'Nuevo Usuario en Cloud Firestore' }}
+                {{ isEditing ? 'Editar en MySQL Relacional' : 'Insertar Registro en MySQL' }}
               </div>
               <h3 class="font-heading text-xl font-black text-white">
-                {{ isEditing ? 'Editar Atributos del Usuario' : 'Registrar Nuevo Usuario' }}
+                {{ isEditing ? 'Editar Usuario Relacional' : 'Nuevo Usuario en Tabla Relacional' }}
               </h3>
               <p class="text-xs text-zinc-400">
-                Se guardará inmediatamente en la colección <code class="text-amber-400">users</code> de Firestore.
+                Se ejecutará una sentencia SQL <code class="text-cyan-400 font-mono">{{ isEditing ? 'UPDATE usuarios' : 'INSERT INTO usuarios' }}</code> validando restricciones de clave foránea.
               </p>
             </div>
 
@@ -452,22 +537,22 @@ import { NotificationService } from '../../core/services/notification.service';
               <!-- displayName -->
               <div class="space-y-1.5">
                 <label class="block font-bold text-zinc-300">
-                  displayName <span class="text-rose-400">*</span>
+                  Nombre Completo (displayName) <span class="text-rose-400">*</span>
                 </label>
                 <input
                   type="text"
                   [(ngModel)]="formData.displayName"
                   name="displayName"
                   required
-                  placeholder="Ej: Sofia Herrera"
-                  class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-amber-500"
+                  placeholder="Ej: Sofía Herrera"
+                  class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-cyan-500"
                 />
               </div>
 
               <!-- email -->
               <div class="space-y-1.5">
                 <label class="block font-bold text-zinc-300">
-                  email <span class="text-rose-400">*</span>
+                  Correo Electrónico (email) <span class="text-rose-400">*</span>
                 </label>
                 <input
                   type="email"
@@ -475,7 +560,7 @@ import { NotificationService } from '../../core/services/notification.service';
                   name="email"
                   required
                   placeholder="Ej: sofia@nocturna.club"
-                  class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-amber-500 font-mono"
+                  class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-cyan-500 font-mono"
                 />
               </div>
 
@@ -485,47 +570,65 @@ import { NotificationService } from '../../core/services/notification.service';
                 <!-- role -->
                 <div class="space-y-1.5">
                   <label class="block font-bold text-zinc-300">
-                    role <span class="text-rose-400">*</span>
+                    Rol Asignado (role_id) <span class="text-rose-400">*</span>
                   </label>
                   <select
                     [(ngModel)]="formData.role"
                     name="role"
-                    class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-zinc-100 focus:outline-none focus:border-amber-500"
+                    class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-zinc-100 focus:outline-none focus:border-cyan-500"
                   >
-                    <option value="USER">Cliente (USER)</option>
-                    <option value="BAR_OWNER">Dueño de Bar (BAR_OWNER)</option>
-                    <option value="ADMIN">Administrador (ADMIN)</option>
+                    <option value="USER">Cliente (USER -> role_id=3)</option>
+                    <option value="BAR_OWNER">Dueño de Bar (BAR_OWNER -> role_id=2)</option>
+                    <option value="ADMIN">Administrador (ADMIN -> role_id=1)</option>
                   </select>
                 </div>
 
                 <!-- estado -->
                 <div class="space-y-1.5">
                   <label class="block font-bold text-zinc-300">
-                    estado <span class="text-rose-400">*</span>
+                    Estado de Cuenta (estado_id) <span class="text-rose-400">*</span>
                   </label>
                   <select
                     [(ngModel)]="formData.estado"
                     name="estado"
-                    class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-zinc-100 focus:outline-none focus:border-amber-500"
+                    class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-zinc-100 focus:outline-none focus:border-cyan-500"
                   >
-                    <option value="ACTIVO">ACTIVO</option>
-                    <option value="SUSPENDIDO">SUSPENDIDO</option>
-                    <option value="PENDIENTE">PENDIENTE</option>
-                    <option value="INACTIVO">INACTIVO</option>
+                    <option value="ACTIVO">ACTIVO (estado_id=1)</option>
+                    <option value="SUSPENDIDO">SUSPENDIDO (estado_id=3)</option>
+                    <option value="PENDIENTE">PENDIENTE (estado_id=4)</option>
+                    <option value="INACTIVO">INACTIVO (estado_id=2)</option>
                   </select>
                 </div>
 
               </div>
 
+              <!-- Bar Asignado (Relación 1:N) -->
+              <div class="space-y-1.5">
+                <label class="block font-bold text-zinc-300">
+                  Establecimiento / Bar Asociado (FK: bar_id) - Opcional
+                </label>
+                <select
+                  [(ngModel)]="formData.barId"
+                  name="barId"
+                  class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-zinc-100 focus:outline-none focus:border-cyan-500"
+                >
+                  <option [ngValue]="null">Ninguno (NULL - Sin bar asignado)</option>
+                  <option [ngValue]="1">El Sotareño VIP (bar_id=1)</option>
+                  <option [ngValue]="2">Club Eclipse Popayán (bar_id=2)</option>
+                  <option [ngValue]="3">Sky Rooftop Lounge (bar_id=3)</option>
+                  <option [ngValue]="4">La Clandestina Terraza (bar_id=4)</option>
+                </select>
+              </div>
+
               <!-- Phone -->
               <div class="space-y-1.5">
-                <label class="block font-bold text-zinc-300">Teléfono (Opcional)</label>
+                <label class="block font-bold text-zinc-300">Teléfono Móvil (Opcional)</label>
                 <input
                   type="text"
                   [(ngModel)]="formData.phone"
                   name="phone"
                   placeholder="+57 300 123 4567"
-                  class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-amber-500 font-mono"
+                  class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-cyan-500 font-mono"
                 />
               </div>
 
@@ -541,10 +644,10 @@ import { NotificationService } from '../../core/services/notification.service';
                 <button
                   type="submit"
                   [disabled]="!formData.displayName || !formData.email"
-                  class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-zinc-950 font-black transition-all shadow-lg shadow-amber-500/30 disabled:opacity-50 flex items-center gap-1.5"
+                  class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-zinc-950 font-black transition-all shadow-lg shadow-cyan-500/30 disabled:opacity-50 flex items-center gap-1.5"
                 >
-                  <span class="material-icons text-sm">cloud_upload</span>
-                  {{ isEditing ? 'Actualizar en Firestore' : 'Guardar en Firestore' }}
+                  <span class="material-icons text-sm">save</span>
+                  {{ isEditing ? 'Ejecutar UPDATE' : 'Ejecutar INSERT' }}
                 </button>
               </div>
 
@@ -554,16 +657,83 @@ import { NotificationService } from '../../core/services/notification.service';
         </div>
       }
 
+      <!-- 6. Modal de Esquema DDL & Consultas SQL MySQL -->
+      @if (showSqlModal) {
+        <div class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+          <div class="bg-zinc-950 border border-zinc-800 rounded-3xl max-w-3xl w-full p-6 sm:p-8 space-y-6 shadow-2xl relative max-h-[85vh] flex flex-col">
+            
+            <button
+              type="button"
+              (click)="showSqlModal = false"
+              class="absolute top-5 right-5 text-zinc-500 hover:text-white"
+            >
+              <span class="material-icons">close</span>
+            </button>
+
+            <!-- Modal Header -->
+            <div class="space-y-1 shrink-0">
+              <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-bold font-mono">
+                <span class="material-icons text-sm">terminal</span>
+                MySQL DDL Script & Consultas Relacionales
+              </div>
+              <h3 class="font-heading text-xl font-black text-white">
+                Esquema de Base de Datos Relacional (MySQL InnoDB)
+              </h3>
+              <p class="text-xs text-zinc-400">
+                Modelo relacional con claves primarias (<code class="text-cyan-300">PK</code>), foráneas (<code class="text-cyan-300">FK</code>) e índices.
+              </p>
+            </div>
+
+            <!-- Modal Body (Scrollable) -->
+            <div class="space-y-4 overflow-y-auto pr-1 flex-1 text-xs">
+              
+              <!-- Última Consulta Ejecutada -->
+              <div class="space-y-1.5">
+                <h4 class="font-bold text-zinc-300 flex items-center gap-1.5 uppercase tracking-wider text-[11px]">
+                  <span class="material-icons text-cyan-400 text-sm">play_arrow</span>
+                  Consulta SELECT JOIN Ejecutada:
+                </h4>
+                <pre class="p-3.5 rounded-2xl bg-zinc-900 border border-cyan-900/50 text-cyan-300 font-mono text-[11px] overflow-x-auto whitespace-pre">{{ userMysql.lastQuery() || 'SELECT u.*, r.nombre, e.nombre FROM usuarios u INNER JOIN roles r ON u.role_id = r.id;' }}</pre>
+              </div>
+
+              <!-- Script DDL Completo -->
+              <div class="space-y-1.5">
+                <h4 class="font-bold text-zinc-300 flex items-center gap-1.5 uppercase tracking-wider text-[11px]">
+                  <span class="material-icons text-cyan-400 text-sm">schema</span>
+                  Script DDL (CREATE TABLE con Constraints):
+                </h4>
+                <pre class="p-3.5 rounded-2xl bg-zinc-900 border border-zinc-800 text-zinc-300 font-mono text-[11px] overflow-x-auto whitespace-pre leading-relaxed">{{ userMysql.ddlScript() }}</pre>
+              </div>
+
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="pt-4 border-t border-zinc-800 flex items-center justify-between shrink-0">
+              <span class="text-zinc-500 text-[11px]">Motor: InnoDB • Charset: UTF8MB4</span>
+              <button
+                type="button"
+                (click)="showSqlModal = false"
+                class="px-5 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs transition-colors"
+              >
+                Cerrar
+              </button>
+            </div>
+
+          </div>
+        </div>
+      }
+
     </div>
   `
 })
 export class UsuariosComponent implements OnInit {
+  public userMysql = inject(UserMysqlService);
   public userFirestore = inject(UserFirestoreService);
   public userHttp = inject(UserHttpService);
   private notify = inject(NotificationService);
 
-  public activeSource: 'FIRESTORE' | 'NODE_EXPRESS' = 'FIRESTORE';
-  public ejemplosDisponibles = EJEMPLOS_USUARIOS_FIRESTORE;
+  public activeMode: DatabaseMode = 'MYSQL_RELATIONAL';
+  public ejemplosRapidos = EJEMPLOS_USUARIOS_FIRESTORE;
 
   public searchQuery = '';
   public selectedRole: 'ALL' | UserRole = 'ALL';
@@ -571,7 +741,9 @@ export class UsuariosComponent implements OnInit {
 
   // Modal State
   public showModal = false;
+  public showSqlModal = false;
   public isEditing = false;
+  public editingId: number | null = null;
   public editingUid: string | null = null;
 
   public formData: {
@@ -580,33 +752,50 @@ export class UsuariosComponent implements OnInit {
     role: UserRole;
     estado: UserEstado;
     phone: string;
+    barId: number | null;
   } = {
     displayName: '',
     email: '',
     role: 'USER',
     estado: 'ACTIVO',
-    phone: ''
+    phone: '',
+    barId: null
   };
 
   ngOnInit() {
+    this.userMysql.loadUsers().subscribe();
     this.userFirestore.initFirestoreSync();
-    this.userHttp.loadUsers().subscribe();
   }
 
-  public activeUsersList = computed(() => {
-    return this.activeSource === 'FIRESTORE'
-      ? this.userFirestore.users()
-      : this.userHttp.users();
+  public displayUsers = computed<UserProfile[]>(() => {
+    if (this.activeMode === 'MYSQL_RELATIONAL') {
+      return this.userMysql.users().map((m: MysqlUser) => ({
+        uid: m.uid,
+        displayName: m.displayName,
+        name: m.displayName,
+        email: m.email,
+        role: m.role,
+        estado: m.estado,
+        registro: m.registro,
+        active: m.estado === 'ACTIVO',
+        phone: m.phone,
+        photoUrl: m.photoUrl
+      }));
+    } else if (this.activeMode === 'FIRESTORE') {
+      return this.userFirestore.users();
+    } else {
+      return this.userHttp.users();
+    }
   });
 
   public isLoading = computed(() => {
-    return this.activeSource === 'FIRESTORE'
-      ? this.userFirestore.isLoading()
-      : this.userHttp.isLoading();
+    if (this.activeMode === 'MYSQL_RELATIONAL') return this.userMysql.isLoading();
+    if (this.activeMode === 'FIRESTORE') return this.userFirestore.isLoading();
+    return this.userHttp.isLoading();
   });
 
   public filteredUsers = computed(() => {
-    let list = this.activeUsersList();
+    let list = this.displayUsers();
     const query = this.searchQuery.trim().toLowerCase();
 
     if (this.selectedRole !== 'ALL') {
@@ -630,30 +819,47 @@ export class UsuariosComponent implements OnInit {
     return list;
   });
 
-  public switchSource(source: 'FIRESTORE' | 'NODE_EXPRESS') {
-    this.activeSource = source;
-    if (source === 'FIRESTORE') {
-      this.notify.info('Visualizando datos en tiempo real de Cloud Firestore (NoSQL)');
+  public getAsignado(user: UserProfile): string | null {
+    if (this.activeMode !== 'MYSQL_RELATIONAL') return null;
+    const mysqlU = this.userMysql.users().find((m) => m.uid === user.uid);
+    return mysqlU ? mysqlU.barAsignado : null;
+  }
+
+  public switchMode(mode: DatabaseMode) {
+    this.activeMode = mode;
+    if (mode === 'MYSQL_RELATIONAL') {
+      this.userMysql.loadUsers().subscribe();
+      this.notify.info('Cambiado a Base de Datos Relacional MySQL (Consultas SQL & Claves Foráneas)');
+    } else if (mode === 'FIRESTORE') {
+      this.notify.info('Cambiado a Cloud Firestore NoSQL (Sincronización en Tiempo Real)');
     } else {
       this.userHttp.loadUsers().subscribe();
-      this.notify.info('Visualizando datos del servidor Node.js + Express (HTTP REST)');
+      this.notify.info('Cambiado a Servidor Node.js + Express (HTTP REST)');
     }
   }
 
-  // Seed examples directly into Firestore
-  public seedEjemplosFirestore() {
-    this.userFirestore.seedExampleUsers(true);
-  }
-
-  // Quick filter by clicking an example chip
-  public quickFilterUser(ejemplo: UserProfile) {
-    this.searchQuery = ejemplo.displayName;
+  // Seed examples into MySQL or active database
+  public seedEjemplos() {
+    if (this.activeMode === 'MYSQL_RELATIONAL') {
+      this.userMysql.seedExampleUsers().subscribe();
+    } else if (this.activeMode === 'FIRESTORE') {
+      this.userFirestore.seedExampleUsers(true);
+    } else {
+      this.userMysql.seedExampleUsers().subscribe(() => {
+        this.userHttp.loadUsers().subscribe();
+      });
+    }
   }
 
   // Action: Toggle Status quickly
   public toggleUserStatus(user: UserProfile) {
     const newEstado: UserEstado = user.estado === 'ACTIVO' ? 'SUSPENDIDO' : 'ACTIVO';
-    if (this.activeSource === 'FIRESTORE') {
+    if (this.activeMode === 'MYSQL_RELATIONAL') {
+      const mysqlU = this.userMysql.users().find((m) => m.uid === user.uid);
+      if (mysqlU) {
+        this.userMysql.updateUser(mysqlU.id, { estado: newEstado }).subscribe();
+      }
+    } else if (this.activeMode === 'FIRESTORE') {
       this.userFirestore.updateUser(user.uid, { estado: newEstado });
     } else {
       this.userHttp.updateUser(user.uid, { estado: newEstado }).subscribe();
@@ -667,7 +873,12 @@ export class UsuariosComponent implements OnInit {
     else if (user.role === 'BAR_OWNER') newRole = 'ADMIN';
     else newRole = 'USER';
 
-    if (this.activeSource === 'FIRESTORE') {
+    if (this.activeMode === 'MYSQL_RELATIONAL') {
+      const mysqlU = this.userMysql.users().find((m) => m.uid === user.uid);
+      if (mysqlU) {
+        this.userMysql.updateUser(mysqlU.id, { role: newRole }).subscribe();
+      }
+    } else if (this.activeMode === 'FIRESTORE') {
       this.userFirestore.updateUser(user.uid, { role: newRole });
     } else {
       this.userHttp.updateUser(user.uid, { role: newRole }).subscribe();
@@ -677,13 +888,15 @@ export class UsuariosComponent implements OnInit {
   // Action: Open Create Modal
   public openCreateModal() {
     this.isEditing = false;
+    this.editingId = null;
     this.editingUid = null;
     this.formData = {
       displayName: '',
       email: '',
       role: 'USER',
       estado: 'ACTIVO',
-      phone: ''
+      phone: '',
+      barId: null
     };
     this.showModal = true;
   }
@@ -692,12 +905,17 @@ export class UsuariosComponent implements OnInit {
   public openEditModal(user: UserProfile) {
     this.isEditing = true;
     this.editingUid = user.uid;
+
+    const mysqlU = this.userMysql.users().find((m) => m.uid === user.uid);
+    this.editingId = mysqlU ? mysqlU.id : null;
+
     this.formData = {
       displayName: user.displayName,
       email: user.email,
       role: user.role,
       estado: user.estado,
-      phone: user.phone || ''
+      phone: user.phone || '',
+      barId: mysqlU ? mysqlU.barId : null
     };
     this.showModal = true;
   }
@@ -710,8 +928,28 @@ export class UsuariosComponent implements OnInit {
   public saveUser() {
     if (!this.formData.displayName || !this.formData.email) return;
 
-    if (this.isEditing && this.editingUid) {
-      if (this.activeSource === 'FIRESTORE') {
+    if (this.activeMode === 'MYSQL_RELATIONAL') {
+      if (this.isEditing && this.editingId !== null) {
+        this.userMysql.updateUser(this.editingId, {
+          displayName: this.formData.displayName,
+          email: this.formData.email,
+          role: this.formData.role,
+          estado: this.formData.estado,
+          phone: this.formData.phone,
+          barId: this.formData.barId
+        }).subscribe(() => this.closeModal());
+      } else {
+        this.userMysql.createUser({
+          displayName: this.formData.displayName,
+          email: this.formData.email,
+          role: this.formData.role,
+          estado: this.formData.estado,
+          phone: this.formData.phone,
+          barId: this.formData.barId
+        }).subscribe(() => this.closeModal());
+      }
+    } else if (this.activeMode === 'FIRESTORE') {
+      if (this.isEditing && this.editingUid) {
         this.userFirestore.updateUser(this.editingUid, {
           displayName: this.formData.displayName,
           email: this.formData.email,
@@ -721,18 +959,6 @@ export class UsuariosComponent implements OnInit {
         });
         this.closeModal();
       } else {
-        this.userHttp.updateUser(this.editingUid, {
-          displayName: this.formData.displayName,
-          email: this.formData.email,
-          role: this.formData.role,
-          estado: this.formData.estado,
-          phone: this.formData.phone
-        }).subscribe(() => {
-          this.closeModal();
-        });
-      }
-    } else {
-      if (this.activeSource === 'FIRESTORE') {
         this.userFirestore.createUser({
           displayName: this.formData.displayName,
           email: this.formData.email,
@@ -741,6 +967,16 @@ export class UsuariosComponent implements OnInit {
           phone: this.formData.phone
         });
         this.closeModal();
+      }
+    } else {
+      if (this.isEditing && this.editingUid) {
+        this.userHttp.updateUser(this.editingUid, {
+          displayName: this.formData.displayName,
+          email: this.formData.email,
+          role: this.formData.role,
+          estado: this.formData.estado,
+          phone: this.formData.phone
+        }).subscribe(() => this.closeModal());
       } else {
         this.userHttp.createUser({
           displayName: this.formData.displayName,
@@ -748,18 +984,20 @@ export class UsuariosComponent implements OnInit {
           role: this.formData.role,
           estado: this.formData.estado,
           phone: this.formData.phone
-        }).subscribe(() => {
-          this.closeModal();
-        });
+        }).subscribe(() => this.closeModal());
       }
     }
   }
 
   // Action: Delete user
   public confirmDeleteUser(user: UserProfile) {
-    const targetDb = this.activeSource === 'FIRESTORE' ? 'Cloud Firestore NoSQL' : 'Node Express';
-    if (confirm(`¿Estás seguro de eliminar a "${user.displayName}" de ${targetDb}?`)) {
-      if (this.activeSource === 'FIRESTORE') {
+    if (confirm(`¿Estás seguro de eliminar el registro relacional "${user.displayName}"?`)) {
+      if (this.activeMode === 'MYSQL_RELATIONAL') {
+        const mysqlU = this.userMysql.users().find((m) => m.uid === user.uid);
+        if (mysqlU) {
+          this.userMysql.deleteUser(mysqlU.id).subscribe();
+        }
+      } else if (this.activeMode === 'FIRESTORE') {
         this.userFirestore.deleteUser(user.uid);
       } else {
         this.userHttp.deleteUser(user.uid).subscribe();

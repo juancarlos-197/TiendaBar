@@ -1,0 +1,276 @@
+{
+  "entities": {
+    "users": {
+      "title": "User",
+      "description": "User profile containing authentication details, role, and activity state",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "format": "email", "maxLength": 120 },
+        "role": { "type": "string", "enum": ["ADMIN", "BAR_OWNER", "USER"] },
+        "photoUrl": { "type": "string", "maxLength": 500 },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "string", "maxLength": 60 }
+      },
+      "required": ["uid", "name", "email", "role", "active"]
+    },
+    "bars": {
+      "title": "Bar & Nightclub",
+      "description": "Venue details including location, musical genres, schedule, capacity and owner reference",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "maxLength": 120 },
+        "description": { "type": "string", "maxLength": 1000 },
+        "address": { "type": "string", "maxLength": 200 },
+        "city": { "type": "string", "maxLength": 100 },
+        "phone": { "type": "string", "maxLength": 30 },
+        "imageUrl": { "type": "string", "maxLength": 500 },
+        "musicGenre": { "type": "string", "maxLength": 80 },
+        "capacity": { "type": "number" },
+        "rating": { "type": "number" },
+        "openingHours": { "type": "string", "maxLength": 100 },
+        "ownerId": { "type": "string", "maxLength": 128 },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "string", "maxLength": 60 }
+      },
+      "required": ["name", "description", "address", "city", "active"]
+    },
+    "events": {
+      "title": "Venue Event",
+      "description": "Parties, live concerts, guest DJ gigs and theme nights hosted at venues",
+      "type": "object",
+      "properties": {
+        "barId": { "type": "string", "maxLength": 128 },
+        "barName": { "type": "string", "maxLength": 120 },
+        "title": { "type": "string", "maxLength": 150 },
+        "description": { "type": "string", "maxLength": 1000 },
+        "date": { "type": "string", "maxLength": 30 },
+        "time": { "type": "string", "maxLength": 30 },
+        "coverPrice": { "type": "number" },
+        "ticketStock": { "type": "number" },
+        "imageUrl": { "type": "string", "maxLength": 500 },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "string", "maxLength": 60 }
+      },
+      "required": ["barId", "title", "date", "coverPrice", "active"]
+    },
+    "artists": {
+      "title": "Music Artist or DJ",
+      "description": "Performer, DJ or live music band profile with genre, bio and stats",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "maxLength": 120 },
+        "genre": { "type": "string", "maxLength": 80 },
+        "bio": { "type": "string", "maxLength": 1000 },
+        "imageUrl": { "type": "string", "maxLength": 500 },
+        "monthlyListeners": { "type": "number" },
+        "topTracksCount": { "type": "number" },
+        "popular": { "type": "boolean" },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "string", "maxLength": 60 }
+      },
+      "required": ["name", "genre", "active"]
+    },
+    "songs": {
+      "title": "Music Track",
+      "description": "Audio track with artist reference, playback preview and genre",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "maxLength": 120 },
+        "artistId": { "type": "string", "maxLength": 128 },
+        "artistName": { "type": "string", "maxLength": 120 },
+        "album": { "type": "string", "maxLength": 120 },
+        "duration": { "type": "string", "maxLength": 20 },
+        "audioUrl": { "type": "string", "maxLength": 500 },
+        "genre": { "type": "string", "maxLength": 80 },
+        "playsCount": { "type": "number" },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "string", "maxLength": 60 }
+      },
+      "required": ["title", "artistName", "genre", "active"]
+    },
+    "playlists": {
+      "title": "Nightlife Playlist",
+      "description": "Curated playlist for club vibes, warm-ups and party atmospheres",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "maxLength": 120 },
+        "description": { "type": "string", "maxLength": 500 },
+        "coverUrl": { "type": "string", "maxLength": 500 },
+        "genre": { "type": "string", "maxLength": 80 },
+        "isFeatured": { "type": "boolean" },
+        "createdBy": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "maxLength": 60 }
+      },
+      "required": ["title", "genre"]
+    },
+    "categories": {
+      "title": "Product Category",
+      "description": "Category for store items like cocktails, beers, spirits, snacks, VIP bottles",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "maxLength": 80 },
+        "slug": { "type": "string", "maxLength": 80 },
+        "icon": { "type": "string", "maxLength": 60 },
+        "description": { "type": "string", "maxLength": 300 },
+        "active": { "type": "boolean" }
+      },
+      "required": ["name", "slug", "active"]
+    },
+    "products": {
+      "title": "Bar Product",
+      "description": "Beverages, liquors, signature cocktails, bottles and merch sold at venues",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "maxLength": 120 },
+        "description": { "type": "string", "maxLength": 500 },
+        "price": { "type": "number" },
+        "categoryId": { "type": "string", "maxLength": 80 },
+        "imageUrl": { "type": "string", "maxLength": 500 },
+        "stock": { "type": "number" },
+        "barId": { "type": "string", "maxLength": 128 },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "string", "maxLength": 60 }
+      },
+      "required": ["name", "price", "categoryId", "stock", "active"]
+    },
+    "orders": {
+      "title": "Store Order",
+      "description": "Purchases of drinks, VIP bottles or table service items by customers",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128 },
+        "userEmail": { "type": "string", "format": "email", "maxLength": 120 },
+        "userName": { "type": "string", "maxLength": 100 },
+        "total": { "type": "number" },
+        "status": { "type": "string", "enum": ["PENDING", "PREPARING", "SERVED", "DELIVERED", "CANCELLED"] },
+        "deliveryMethod": { "type": "string", "enum": ["TABLE", "BAR_PICKUP", "VIP_LOUNGE"] },
+        "tableNumber": { "type": "string", "maxLength": 30 },
+        "notes": { "type": "string", "maxLength": 400 },
+        "createdAt": { "type": "string", "maxLength": 60 }
+      },
+      "required": ["userId", "total", "status", "deliveryMethod"]
+    },
+    "subscriptionPlans": {
+      "title": "Subscription Plan",
+      "description": "Tiered access membership for clubbers with discounts, express entry and free covers",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "maxLength": 80 },
+        "price": { "type": "number" },
+        "interval": { "type": "string", "enum": ["monthly", "annual"] },
+        "badge": { "type": "string", "maxLength": 50 },
+        "popular": { "type": "boolean" },
+        "active": { "type": "boolean" }
+      },
+      "required": ["name", "price", "interval", "active"]
+    },
+    "subscriptions": {
+      "title": "User Subscription",
+      "description": "Active membership status of a user",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128 },
+        "userEmail": { "type": "string", "format": "email", "maxLength": 120 },
+        "planId": { "type": "string", "maxLength": 80 },
+        "planName": { "type": "string", "maxLength": 80 },
+        "status": { "type": "string", "enum": ["ACTIVE", "EXPIRED", "CANCELLED"] },
+        "price": { "type": "number" },
+        "startDate": { "type": "string", "maxLength": 40 },
+        "nextBillingDate": { "type": "string", "maxLength": 40 }
+      },
+      "required": ["userId", "planId", "status", "startDate"]
+    },
+    "tableReservations": {
+      "title": "Table Reservation",
+      "description": "Table bookings at bars and clubs with date, time, party size and area",
+      "type": "object",
+      "properties": {
+        "barId": { "type": "string", "maxLength": 128 },
+        "barName": { "type": "string", "maxLength": 100 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "userEmail": { "type": "string", "format": "email", "maxLength": 120 },
+        "customerName": { "type": "string", "maxLength": 100 },
+        "customerPhone": { "type": "string", "maxLength": 30 },
+        "date": { "type": "string", "maxLength": 20 },
+        "time": { "type": "string", "maxLength": 20 },
+        "guestsCount": { "type": "number" },
+        "tableArea": { "type": "string", "enum": ["TERRAZA", "BARRA", "PISTA", "PALCO_VIP"] },
+        "specialRequests": { "type": "string", "maxLength": 400 },
+        "status": { "type": "string", "enum": ["CONFIRMED", "PENDING", "CANCELLED"] },
+        "reservationCode": { "type": "string", "maxLength": 30 },
+        "createdAt": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["barId", "barName", "customerName", "date", "time", "guestsCount", "tableArea", "reservationCode"]
+    },
+    "userFavorites": {
+      "title": "User Favorite Venues",
+      "description": "Collection of preferred bar and club IDs saved by a user",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128 },
+        "barIds": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "updatedAt": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["userId", "barIds"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "users",
+      "description": "User profiles with role and permissions"
+    },
+    "/bars/{barId}": {
+      "schema": "bars",
+      "description": "Venues, bars and discotecas"
+    },
+    "/events/{eventId}": {
+      "schema": "events",
+      "description": "Club parties, live sets and events"
+    },
+    "/artists/{artistId}": {
+      "schema": "artists",
+      "description": "Resident DJs and artists"
+    },
+    "/songs/{songId}": {
+      "schema": "songs",
+      "description": "Curated tracks and music catalog"
+    },
+    "/playlists/{playlistId}": {
+      "schema": "playlists",
+      "description": "Party and club playlist collections"
+    },
+    "/categories/{categoryId}": {
+      "schema": "categories",
+      "description": "Categories for drink and merchandise menu"
+    },
+    "/products/{productId}": {
+      "schema": "products",
+      "description": "Drinks, cocktails, spirits, bottle services"
+    },
+    "/orders/{orderId}": {
+      "schema": "orders",
+      "description": "Orders made by users"
+    },
+    "/subscriptionPlans/{planId}": {
+      "schema": "subscriptionPlans",
+      "description": "Nightlife VIP subscription tiers"
+    },
+    "/subscriptions/{subId}": {
+      "schema": "subscriptions",
+      "description": "User subscription records"
+    },
+    "/tableReservations/{resId}": {
+      "schema": "tableReservations",
+      "description": "User table booking requests and vouchers"
+    },
+    "/userFavorites/{userId}": {
+      "schema": "userFavorites",
+      "description": "User saved favorite venue IDs"
+    }
+  }
+}

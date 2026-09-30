@@ -1,0 +1,6 @@
+{
+  "name": "Nocturna - Bares, Discotecas & Experiencias Nocturnas",
+  "description": "Plataforma integral de gestión y exploración para bares, discotecas, música en vivo, tienda de bebidas, reservas de eventos y suscripciones VIP.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -70,7 +70,7 @@ import { QuickSearchComponent } from '../quick-search/quick-search.component';
               </div>
               <div>
                 <span class="font-heading font-extrabold text-xl tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-zinc-100 via-zinc-200 to-violet-300">
-                  NOCTURNA
+                  TendaBar
                 </span>
                 <span class="block text-[10px] tracking-widest text-zinc-400 font-medium uppercase -mt-1">
                   Bares & Clubes

@@ -26,6 +26,9 @@ export const EJEMPLOS_USUARIOS_FIRESTORE: UserProfile[] = [
     phone: '+57 312 456 7890',
     photoUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80'
   },
+    /**
+   * Initializes real-time listener with Cloud Firestore collection 'users'
+   
   {
     uid: 'usr-ejemplo-002',
     displayName: 'Carlos Mendoza (Dueño Sotareño)',
@@ -109,7 +112,9 @@ export const EJEMPLOS_USUARIOS_FIRESTORE: UserProfile[] = [
     active: true,
     phone: '+57 320 888 4433',
     photoUrl: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=200&q=80'
-  }
+  }  
+   *
+   */
 ];
 
 @Injectable({

@@ -21,7 +21,6 @@ export const roleGuard: CanActivateFn = (route: ActivatedRouteSnapshot, _state) 
     return true;
   }
 
-  notify.error(`Acceso denegado. Este módulo requiere permisos de: ${allowedRoles.join(' o ')}`);
-  router.navigate(['/dashboard']);
-  return false;
+  notify.error(`Acceso restringido. Este módulo requiere permisos de: ${allowedRoles.join(' o ')}`);
+  return router.createUrlTree(['/dashboard']);
 };

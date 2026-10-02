@@ -34,17 +34,17 @@ type DatabaseMode = 'MYSQL_RELATIONAL' | 'FIRESTORE' | 'NODE_EXPRESS';
                 Base de Datos Relacional (MySQL / InnoDB)
               </span>
 
-              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold font-mono">
-                <span class="material-icons text-xs">storage</span>
-                NoSQL (Cloud Firestore)
+              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-bold font-mono">
+                <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
+                Base de Datos No Relacional (NoSQL Firebase Firestore)
               </span>
             </div>
 
             <h1 class="font-heading text-2xl sm:text-4xl font-extrabold text-white tracking-tight flex items-center gap-3">
-              <span>Gestión de Usuarios con Base de Datos Relacional MySQL</span>
+              <span>Gestión de Usuarios con Base de Datos Relacional MySQL y NoSQL Firebase No Relacional</span>
             </h1>
             <p class="text-xs sm:text-sm text-zinc-300 max-w-3xl leading-relaxed">
-              Estructura normalizada en tablas relacionales (<code class="text-cyan-400 font-bold bg-cyan-950/60 px-1.5 py-0.5 rounded border border-cyan-800">usuarios</code>, <code class="text-amber-400 font-bold bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-800">roles</code>, <code class="text-emerald-400 font-bold bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-800">estados</code> y <code class="text-fuchsia-400 font-bold bg-fuchsia-950/60 px-1.5 py-0.5 rounded border border-fuchsia-800">bares_afiliados</code>) con claves foráneas (<code class="text-cyan-300">FK</code>) y consultas <code class="text-cyan-400 font-mono">INNER JOIN</code>.
+              Arquitectura dual integrada: gestión mediante <strong>Base de Datos Relacional MySQL</strong> (tablas normalizadas <code class="text-cyan-400 font-bold bg-cyan-950/60 px-1.5 py-0.5 rounded border border-cyan-800">usuarios</code>, <code class="text-amber-400 font-bold bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-800">roles</code>, <code class="text-emerald-400 font-bold bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-800">estados</code> con claves foráneas <code class="text-cyan-300">FK</code> y consultas <code class="text-cyan-400 font-mono">INNER JOIN</code>) y <strong>Base de Datos No Relacional NoSQL Firebase Firestore</strong> (colección <code class="text-amber-400 font-bold bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-800">users</code> sincronizada en tiempo real).
             </p>
           </div>
 

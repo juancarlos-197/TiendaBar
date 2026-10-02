@@ -58,36 +58,6 @@ const usersDatabase: ServerUser[] = [
     registro: '2026-08-28',
     photoUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80',
     phone: '+57 315 222 3344'
-  },
-  {
-    uid: 'usr-client-004',
-    displayName: 'Camila Ríos',
-    email: 'camila.rios@gmail.com',
-    role: 'USER',
-    estado: 'ACTIVO',
-    registro: '2026-09-02',
-    photoUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80',
-    phone: '+57 318 555 1234'
-  },
-  {
-    uid: 'usr-client-005',
-    displayName: 'Andrés Felipe Gómez',
-    email: 'andres.pipe@hotmail.com',
-    role: 'USER',
-    estado: 'SUSPENDIDO',
-    registro: '2026-09-12',
-    photoUrl: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=200&q=80',
-    phone: '+57 301 777 8899'
-  },
-  {
-    uid: 'usr-client-006',
-    displayName: 'Valeria Mosquera',
-    email: 'valeria.m@outlook.com',
-    role: 'USER',
-    estado: 'PENDIENTE',
-    registro: '2026-09-24',
-    photoUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=200&q=80',
-    phone: '+57 311 333 4455'
   }
 ];
 

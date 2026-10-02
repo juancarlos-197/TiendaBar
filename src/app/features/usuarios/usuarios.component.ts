@@ -50,17 +50,30 @@ type DatabaseMode = 'MYSQL_RELATIONAL' | 'FIRESTORE' | 'NODE_EXPRESS';
 
           <!-- Botones de Acción Superior -->
           <div class="flex flex-wrap items-center gap-2.5 shrink-0">
-            <!-- Botón Cargar Ejemplos en MySQL -->
-            <button
-              type="button"
-              (click)="seedEjemplos()"
-              [disabled]="isLoading()"
-              class="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-zinc-950 font-black text-xs transition-all shadow-lg shadow-cyan-500/25 flex items-center gap-2 active:scale-95 disabled:opacity-50"
-              title="Poblar las tablas relacionales de MySQL con 8 usuarios de ejemplo y sus claves foráneas"
-            >
-              <span class="material-icons text-base">cloud_sync</span>
-              Cargar Ejemplos en MySQL
-            </button>
+            <!-- Botón Sincronizar en Firebase Firestore / MySQL -->
+            @if (activeMode === 'FIRESTORE') {
+              <button
+                type="button"
+                (click)="seedEjemplos()"
+                [disabled]="isLoading()"
+                class="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-zinc-950 font-black text-xs transition-all shadow-lg shadow-orange-500/25 flex items-center gap-2 active:scale-95 disabled:opacity-50"
+                title="Poblar la colección 'users' de Cloud Firestore con los 8 usuarios de ejemplo"
+              >
+                <span class="material-icons text-base">local_fire_department</span>
+                Poblar en Firebase Firestore
+              </button>
+            } @else {
+              <button
+                type="button"
+                (click)="seedEjemplos()"
+                [disabled]="isLoading()"
+                class="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-zinc-950 font-black text-xs transition-all shadow-lg shadow-cyan-500/25 flex items-center gap-2 active:scale-95 disabled:opacity-50"
+                title="Poblar las tablas relacionales de MySQL con 8 usuarios de ejemplo y sus claves foráneas"
+              >
+                <span class="material-icons text-base">cloud_sync</span>
+                Cargar Ejemplos en MySQL
+              </button>
+            }
 
             <!-- Ver Esquema SQL & Consultas DDL -->
             <button
@@ -88,36 +101,36 @@ type DatabaseMode = 'MYSQL_RELATIONAL' | 'FIRESTORE' | 'NODE_EXPRESS';
         <!-- Selector de Motor de Base de Datos -->
         <div class="pt-3 border-t border-zinc-800/80 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-xs text-zinc-400">
           <div class="flex flex-wrap items-center gap-2">
-            <span class="text-zinc-500 font-bold">Motor de Base de Datos:</span>
+            <span class="text-zinc-500 font-bold">Base de Datos Conectada:</span>
             <div class="inline-flex p-1 rounded-2xl bg-zinc-950 border border-zinc-800 text-[11px] font-bold">
               
-              <!-- Tab 1: MySQL Relacional -->
-              <button
-                type="button"
-                (click)="switchMode('MYSQL_RELATIONAL')"
-                class="px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5"
-                [ngClass]="activeMode === 'MYSQL_RELATIONAL' ? 'bg-cyan-500 text-zinc-950 shadow-md font-black' : 'text-zinc-400 hover:text-white'"
-              >
-                <span class="material-icons text-xs">table_view</span>
-                MySQL Relacional (SQL / JOIN)
-              </button>
-
-              <!-- Tab 2: Firestore NoSQL -->
+              <!-- Tab 1: Firestore NoSQL (Principal) -->
               <button
                 type="button"
                 (click)="switchMode('FIRESTORE')"
-                class="px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5"
-                [ngClass]="activeMode === 'FIRESTORE' ? 'bg-amber-500 text-zinc-950 shadow-md font-black' : 'text-zinc-400 hover:text-white'"
+                class="px-3.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5"
+                [ngClass]="activeMode === 'FIRESTORE' ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-zinc-950 shadow-md font-black' : 'text-zinc-400 hover:text-white'"
               >
-                <span class="material-icons text-xs">cloud_done</span>
-                Firestore NoSQL (Colección)
+                <span class="material-icons text-xs">local_fire_department</span>
+                🔥 Firebase Firestore (Tiempo Real)
+              </button>
+
+              <!-- Tab 2: MySQL Relacional -->
+              <button
+                type="button"
+                (click)="switchMode('MYSQL_RELATIONAL')"
+                class="px-3.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5"
+                [ngClass]="activeMode === 'MYSQL_RELATIONAL' ? 'bg-cyan-500 text-zinc-950 shadow-md font-black' : 'text-zinc-400 hover:text-white'"
+              >
+                <span class="material-icons text-xs">table_view</span>
+                🐬 MySQL Relacional (SQL / JOIN)
               </button>
 
               <!-- Tab 3: Node Express REST -->
               <button
                 type="button"
                 (click)="switchMode('NODE_EXPRESS')"
-                class="px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5"
+                class="px-3.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5"
                 [ngClass]="activeMode === 'NODE_EXPRESS' ? 'bg-emerald-600 text-white shadow-md' : 'text-zinc-400 hover:text-white'"
               >
                 <span class="material-icons text-xs">dns</span>
@@ -130,14 +143,32 @@ type DatabaseMode = 'MYSQL_RELATIONAL' | 'FIRESTORE' | 'NODE_EXPRESS';
           <div class="flex items-center gap-3 text-zinc-400 font-mono text-[11px]">
             <span>Registros: <strong class="text-white">{{ displayUsers().length }}</strong></span>
             <span>•</span>
-            <span [ngClass]="activeMode === 'MYSQL_RELATIONAL' ? 'text-cyan-400 font-bold' : 'text-amber-400 font-bold'">
-              {{ activeMode === 'MYSQL_RELATIONAL' ? 'Tablas: usuarios ⨝ roles ⨝ estados' : activeMode === 'FIRESTORE' ? "Colección: 'users'" : 'Array Express' }}
+            <span [ngClass]="activeMode === 'FIRESTORE' ? 'text-amber-400 font-bold' : activeMode === 'MYSQL_RELATIONAL' ? 'text-cyan-400 font-bold' : 'text-emerald-400 font-bold'">
+              {{ activeMode === 'FIRESTORE' ? "🔥 Colección Firestore: 'users'" : activeMode === 'MYSQL_RELATIONAL' ? '🐬 Tablas: usuarios ⨝ roles ⨝ estados' : 'Array Express' }}
             </span>
           </div>
         </div>
 
-        <!-- Consulta SQL Ejecutada en Tiempo Real (Banner interactivo) -->
-        @if (activeMode === 'MYSQL_RELATIONAL' && userMysql.lastQuery()) {
+        <!-- Banner de Estado de Conexión en Tiempo Real -->
+        @if (activeMode === 'FIRESTORE') {
+          <div class="p-3.5 bg-gradient-to-r from-amber-950/50 via-zinc-950 to-orange-950/40 border border-amber-800/60 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-[11px] font-mono">
+            <div class="flex items-center gap-2 text-amber-300 min-w-0">
+              <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
+              <span class="font-bold text-amber-200">🔥 Cloud Firestore Conectado en la Vista (Tiempo Real):</span>
+              <span class="text-zinc-300">Colección <code class="text-amber-300 bg-black/60 px-1.5 py-0.5 rounded border border-amber-700/50">users</code> sincronizada mediante <code class="text-amber-400">onSnapshot</code> (<strong class="text-white">displayName, email, role, estado, registro</strong>)</span>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+              <button
+                (click)="seedEjemplos()"
+                class="px-3 py-1 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-bold flex items-center gap-1 transition-all"
+                title="Poblar los 8 usuarios en Firestore"
+              >
+                <span class="material-icons text-xs">cloud_upload</span>
+                Sincronizar a Firebase
+              </button>
+            </div>
+          </div>
+        } @else if (activeMode === 'MYSQL_RELATIONAL' && userMysql.lastQuery()) {
           <div class="p-3 bg-zinc-950/90 border border-cyan-900/40 rounded-2xl flex items-center justify-between gap-3 text-[11px] font-mono">
             <div class="flex items-center gap-2 text-cyan-300 min-w-0">
               <span class="material-icons text-xs text-cyan-400 shrink-0">terminal</span>
@@ -154,17 +185,17 @@ type DatabaseMode = 'MYSQL_RELATIONAL' | 'FIRESTORE' | 'NODE_EXPRESS';
         }
       </div>
 
-      <!-- 2. Galería de Ejemplos Relacionales -->
+      <!-- 2. Galería de Ejemplos -->
       <div class="space-y-3">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">
-            <span class="material-icons text-cyan-400 text-base">hub</span>
+            <span class="material-icons text-amber-400 text-base">local_fire_department</span>
             <h3 class="text-xs font-bold uppercase tracking-wider text-zinc-300">
-              Ejemplos Relacionales Preconfigurados (Con Claves Foráneas)
+              {{ activeMode === 'FIRESTORE' ? 'Usuarios de Ejemplo Sincronizados con Firebase Firestore' : 'Ejemplos Relacionales Preconfigurados' }}
             </h3>
           </div>
           <span class="text-[11px] text-zinc-500">
-            Haz clic en un ejemplo para filtrar la tabla
+            Haz clic en un usuario para filtrar la tabla principal
           </span>
         </div>
 
@@ -173,7 +204,7 @@ type DatabaseMode = 'MYSQL_RELATIONAL' | 'FIRESTORE' | 'NODE_EXPRESS';
             <button
               type="button"
               (click)="searchQuery = ejemplo.displayName"
-              class="p-2.5 rounded-2xl bg-zinc-900/90 hover:bg-zinc-800/80 border border-zinc-800 hover:border-cyan-500/50 text-left transition-all group flex flex-col items-center text-center space-y-1.5 shadow-sm"
+              class="p-2.5 rounded-2xl bg-zinc-900/90 hover:bg-zinc-800/80 border border-zinc-800 hover:border-amber-500/50 text-left transition-all group flex flex-col items-center text-center space-y-1.5 shadow-sm"
               [title]="'Filtrar por ' + ejemplo.displayName"
             >
               <img
@@ -182,7 +213,7 @@ type DatabaseMode = 'MYSQL_RELATIONAL' | 'FIRESTORE' | 'NODE_EXPRESS';
                 class="w-10 h-10 rounded-xl object-cover bg-zinc-950 border border-zinc-800 group-hover:scale-105 transition-transform"
               />
               <div class="w-full">
-                <span class="text-[11px] font-bold text-white block truncate leading-tight group-hover:text-cyan-300">
+                <span class="text-[11px] font-bold text-white block truncate leading-tight group-hover:text-amber-300">
                   {{ ejemplo.displayName.split(' ')[0] }}
                 </span>
                 <span
@@ -284,29 +315,61 @@ type DatabaseMode = 'MYSQL_RELATIONAL' | 'FIRESTORE' | 'NODE_EXPRESS';
             <thead class="bg-zinc-950 border-b border-zinc-800 text-zinc-400 uppercase tracking-wider font-bold text-[11px]">
               <tr>
                 <th class="py-4 px-5">
-                  <div class="flex items-center gap-1">
-                    <span>Nombre / Usuario</span>
-                    <span class="text-[9px] text-cyan-400 font-mono font-normal">({{ activeMode === 'MYSQL_RELATIONAL' ? 'displayName • PK' : 'displayName' }})</span>
+                  <div class="flex items-center gap-1.5">
+                    <span>Nombre / Usuario (displayName)</span>
+                    @if (activeMode === 'FIRESTORE') {
+                      <span class="px-1.5 py-0.5 rounded text-[9px] bg-amber-500/15 border border-amber-500/30 text-amber-300 font-mono font-normal">
+                        🔥 Firestore
+                      </span>
+                    } @else {
+                      <span class="text-[9px] text-cyan-400 font-mono font-normal">PK / AUTO_INC</span>
+                    }
                   </div>
                 </th>
-                <th class="py-4 px-5">Correo Electrónico (email)</th>
                 <th class="py-4 px-5">
-                  <div class="flex items-center gap-1">
+                  <div class="flex items-center gap-1.5">
+                    <span>Correo Electrónico (email)</span>
+                    @if (activeMode === 'FIRESTORE') {
+                      <span class="px-1.5 py-0.5 rounded text-[9px] bg-amber-500/15 border border-amber-500/30 text-amber-300 font-mono font-normal">
+                        email
+                      </span>
+                    }
+                  </div>
+                </th>
+                <th class="py-4 px-5">
+                  <div class="flex items-center gap-1.5">
                     <span>Rol (role)</span>
-                    @if (activeMode === 'MYSQL_RELATIONAL') {
+                    @if (activeMode === 'FIRESTORE') {
+                      <span class="px-1.5 py-0.5 rounded text-[9px] bg-amber-500/15 border border-amber-500/30 text-amber-300 font-mono font-normal">
+                        role
+                      </span>
+                    } @else {
                       <span class="text-[9px] text-cyan-400 font-mono font-normal">FK: roles</span>
                     }
                   </div>
                 </th>
                 <th class="py-4 px-5">
-                  <div class="flex items-center gap-1">
+                  <div class="flex items-center gap-1.5">
                     <span>Estado (estado)</span>
-                    @if (activeMode === 'MYSQL_RELATIONAL') {
+                    @if (activeMode === 'FIRESTORE') {
+                      <span class="px-1.5 py-0.5 rounded text-[9px] bg-amber-500/15 border border-amber-500/30 text-amber-300 font-mono font-normal">
+                        estado
+                      </span>
+                    } @else {
                       <span class="text-[9px] text-cyan-400 font-mono font-normal">FK: estados</span>
                     }
                   </div>
                 </th>
-                <th class="py-4 px-5">Fecha de Registro</th>
+                <th class="py-4 px-5">
+                  <div class="flex items-center gap-1.5">
+                    <span>Fecha de Registro (registro)</span>
+                    @if (activeMode === 'FIRESTORE') {
+                      <span class="px-1.5 py-0.5 rounded text-[9px] bg-amber-500/15 border border-amber-500/30 text-amber-300 font-mono font-normal">
+                        registro
+                      </span>
+                    }
+                  </div>
+                </th>
                 @if (activeMode === 'MYSQL_RELATIONAL') {
                   <th class="py-4 px-5">Bar Asignado (FK: bar_id)</th>
                 }
@@ -732,7 +795,7 @@ export class UsuariosComponent implements OnInit {
   public userHttp = inject(UserHttpService);
   private notify = inject(NotificationService);
 
-  public activeMode: DatabaseMode = 'MYSQL_RELATIONAL';
+  public activeMode: DatabaseMode = 'FIRESTORE';
   public ejemplosRapidos = EJEMPLOS_USUARIOS_FIRESTORE;
 
   public searchQuery = '';
@@ -763,8 +826,8 @@ export class UsuariosComponent implements OnInit {
   };
 
   ngOnInit() {
-    this.userMysql.loadUsers().subscribe();
     this.userFirestore.initFirestoreSync();
+    this.userMysql.loadUsers().subscribe();
   }
 
   public displayUsers = computed<UserProfile[]>(() => {

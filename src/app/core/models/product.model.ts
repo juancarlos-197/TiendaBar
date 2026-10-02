@@ -20,6 +20,9 @@ export interface Product {
   barName?: string;
   active: boolean;
   volumeOrServing?: string;
+  whatsappNumber?: string;
+  ingredients?: string[];
+  alcoholPercentage?: string;
   createdAt?: string;
 }
 

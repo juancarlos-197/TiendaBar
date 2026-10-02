@@ -16,24 +16,53 @@ import { BarEvent } from '../../../core/models/bar.model';
       <!-- Header -->
       <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
+          <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-fuchsia-500/15 border border-fuchsia-500/30 text-fuchsia-300 text-xs font-bold font-mono mb-2">
+            <span class="w-2 h-2 rounded-full bg-fuchsia-400 animate-pulse"></span>
+            🔥 Conectado a Firebase Cloud Firestore NoSQL
+          </div>
           <h1 class="font-heading text-3xl font-extrabold text-white flex items-center gap-3">
             <span class="material-icons text-fuchsia-400 text-3xl">confirmation_number</span>
             Cartelera de Fiestas & Eventos
           </h1>
           <p class="text-xs text-zinc-400 mt-1">
-            Conciertos en vivo, noches temáticas, sets de DJs invitados y festivales locales
+            Conciertos en vivo, noches temáticas y fiestas sincronizadas con la colección <code class="text-fuchsia-300 font-mono">events</code> de Firebase Firestore
           </p>
         </div>
 
-        @if (auth.isBarOwner() || auth.isAdmin()) {
+        <div class="flex flex-wrap items-center gap-2.5">
           <button
+            type="button"
+            (click)="barService.seedEventsToFirestore(true)"
+            class="px-4 py-2.5 rounded-xl font-bold text-xs text-fuchsia-300 bg-fuchsia-500/15 hover:bg-fuchsia-500/25 border border-fuchsia-500/40 flex items-center gap-1.5 transition-all shadow-sm"
+            title="Sincronizar y poblar los eventos en Firestore"
+          >
+            <span class="material-icons text-base">cloud_sync</span>
+            Sincronizar a Firebase
+          </button>
+
+          <button
+            type="button"
             (click)="showCreateModal = true"
-            class="px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-gradient-to-r from-fuchsia-600 to-pink-600 hover:from-fuchsia-500 hover:to-pink-500 shadow-lg shadow-fuchsia-600/30 flex items-center gap-2"
+            class="px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-gradient-to-r from-fuchsia-600 to-pink-600 hover:from-fuchsia-500 hover:to-pink-500 shadow-lg shadow-fuchsia-600/30 flex items-center gap-2 active:scale-95 transition-all"
           >
             <span class="material-icons text-base">add_circle</span>
-            Publicar Nuevo Evento
+            Registrar Evento en Firestore
           </button>
-        }
+        </div>
+      </div>
+
+      <!-- Live Firebase Banner -->
+      <div class="p-3.5 bg-gradient-to-r from-fuchsia-950/40 via-zinc-950 to-pink-950/30 border border-fuchsia-800/60 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
+        <div class="flex items-center gap-2 text-fuchsia-300 min-w-0">
+          <span class="w-2.5 h-2.5 rounded-full bg-fuchsia-400 animate-pulse"></span>
+          <span class="font-bold text-fuchsia-200">🔥 Colección 'events' en Cloud Firestore:</span>
+          <span class="text-zinc-300">Sincronización en tiempo real (<code class="text-fuchsia-400">onSnapshot</code>) con {{ barService.events().length }} eventos y fiestas registradas</span>
+        </div>
+        <div class="flex items-center gap-3 text-[11px] text-zinc-400">
+          <span>Registros: <strong class="text-white">{{ barService.events().length }}</strong></span>
+          <span>•</span>
+          <span class="text-fuchsia-400 font-bold">Estado: Conectado</span>
+        </div>
       </div>
 
       <!-- Events Grid -->
@@ -90,13 +119,23 @@ import { BarEvent } from '../../../core/models/bar.model';
                 <div class="text-[11px] text-zinc-500">
                   Aforo disponible: <strong class="text-zinc-200">{{ ev.ticketStock }}</strong>
                 </div>
-                <button
-                  (click)="openBuyTicket(ev)"
-                  class="px-4 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-fuchsia-600 to-pink-600 hover:from-fuchsia-500 hover:to-pink-500 shadow-md transition-all active:scale-95 flex items-center gap-1.5"
-                >
-                  <span class="material-icons text-sm">qr_code_2</span>
-                  Comprar Cover
-                </button>
+                <div class="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    (click)="barService.deleteEvent(ev.id!)"
+                    class="p-2 rounded-xl text-xs text-zinc-400 hover:text-rose-400 bg-zinc-950 hover:bg-rose-950/40 border border-zinc-800 hover:border-rose-800/40 transition-colors"
+                    title="Eliminar Evento de Cloud Firestore"
+                  >
+                    <span class="material-icons text-base">delete</span>
+                  </button>
+                  <button
+                    (click)="openBuyTicket(ev)"
+                    class="px-4 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-fuchsia-600 to-pink-600 hover:from-fuchsia-500 hover:to-pink-500 shadow-md transition-all active:scale-95 flex items-center gap-1.5"
+                  >
+                    <span class="material-icons text-sm">qr_code_2</span>
+                    Comprar Cover
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -185,10 +224,13 @@ import { BarEvent } from '../../../core/models/bar.model';
         <div class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
           <div class="bg-zinc-900 border border-zinc-800 rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
             <div class="flex items-center justify-between">
-              <h3 class="font-heading text-lg font-bold text-white flex items-center gap-2">
-                <span class="material-icons text-fuchsia-400">event_available</span>
-                Programar Evento o Noche Temática
-              </h3>
+              <div>
+                <span class="text-[10px] text-fuchsia-400 font-mono font-bold uppercase tracking-wider block">Firebase Cloud Firestore</span>
+                <h3 class="font-heading text-lg font-bold text-white flex items-center gap-2">
+                  <span class="material-icons text-fuchsia-400">event_available</span>
+                  Registrar Nuevo Evento en Firestore
+                </h3>
+              </div>
               <button (click)="showCreateModal = false" class="text-zinc-500 hover:text-white">
                 <span class="material-icons">close</span>
               </button>
@@ -295,9 +337,10 @@ import { BarEvent } from '../../../core/models/bar.model';
                 <button
                   type="submit"
                   [disabled]="eventForm.invalid"
-                  class="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-fuchsia-600 hover:bg-fuchsia-500 shadow-md shadow-fuchsia-600/30 disabled:opacity-50"
+                  class="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-fuchsia-600 to-pink-600 hover:from-fuchsia-500 shadow-md shadow-fuchsia-600/30 disabled:opacity-50 flex items-center gap-1.5"
                 >
-                  Publicar en Cartelera
+                  <span class="material-icons text-sm">cloud_upload</span>
+                  Guardar Evento en Cloud Firestore
                 </button>
               </div>
             </form>

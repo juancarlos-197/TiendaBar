@@ -128,7 +128,8 @@ import { Product } from '../../../core/models/product.model';
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         @for (prod of filteredProducts(); track prod.id) {
           <div class="bg-zinc-900/80 border border-zinc-800 rounded-3xl overflow-hidden hover:border-amber-500/40 transition-all flex flex-col group shadow-xl">
-            <div class="relative h-48 bg-zinc-950 overflow-hidden">
+            <!-- Clickable image to open details -->
+            <div (click)="openProductDetailModal(prod)" class="relative h-48 bg-zinc-950 overflow-hidden cursor-pointer" title="Clic para ver detalles completos">
               <img
                 [src]="prod.imageUrl"
                 [alt]="prod.name"
@@ -138,6 +139,12 @@ import { Product } from '../../../core/models/product.model';
 
               <div class="absolute top-3 right-3 px-2.5 py-1 rounded-lg bg-zinc-950/80 backdrop-blur-md border border-white/10 text-xs font-bold text-amber-400">
                 {{ prod.price | copCurrency }}
+              </div>
+
+              <!-- Quick WhatsApp badge -->
+              <div class="absolute top-3 left-3 px-2 py-0.5 rounded-md bg-emerald-950/85 backdrop-blur-md border border-emerald-500/40 text-[10px] text-emerald-300 font-bold flex items-center gap-1 shadow-sm">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                WhatsApp
               </div>
 
               @if (prod.volumeOrServing) {
@@ -152,7 +159,11 @@ import { Product } from '../../../core/models/product.model';
                 <span class="text-[11px] font-semibold text-fuchsia-400 block mb-1">
                   {{ prod.categoryName || 'Bebidas' }} • {{ prod.barName || 'Bar Asociado' }}
                 </span>
-                <h3 class="font-heading text-base font-bold text-white group-hover:text-amber-300 transition-colors line-clamp-1">
+                <h3
+                  (click)="openProductDetailModal(prod)"
+                  class="font-heading text-base font-bold text-white group-hover:text-amber-300 transition-colors line-clamp-1 cursor-pointer"
+                  title="Ver detalles completos de la bebida"
+                >
                   {{ prod.name }}
                 </h3>
                 <p class="text-xs text-zinc-400 line-clamp-2 mt-1.5 leading-relaxed">
@@ -162,9 +173,32 @@ import { Product } from '../../../core/models/product.model';
 
               <div class="pt-3 border-t border-zinc-800/80 flex items-center justify-between">
                 <span class="text-[11px] text-zinc-500">
-                  Stock: <strong class="text-zinc-300">{{ prod.stock }}</strong> disp.
+                  Stock: <strong class="text-zinc-300">{{ prod.stock }}</strong>
                 </span>
+
                 <div class="flex items-center gap-1.5">
+                  <!-- Details / Info Button -->
+                  <button
+                    type="button"
+                    (click)="openProductDetailModal(prod)"
+                    class="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+                    title="Ver detalles y notas de cata"
+                  >
+                    <span class="material-icons text-base">info_outline</span>
+                  </button>
+
+                  <!-- Direct WhatsApp Button -->
+                  <a
+                    [href]="storeService.getProductWhatsAppUrl(prod, 1, 'Mesa en Bar')"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="p-1.5 rounded-lg text-emerald-400 hover:text-white hover:bg-emerald-600 bg-emerald-500/10 border border-emerald-500/20 transition-all flex items-center justify-center"
+                    title="Pedir directamente por WhatsApp"
+                  >
+                    <span class="material-icons text-base">chat</span>
+                  </a>
+
+                  <!-- Delete Button -->
                   <button
                     type="button"
                     (click)="openDeleteConfirmModal(prod)"
@@ -173,10 +207,12 @@ import { Product } from '../../../core/models/product.model';
                   >
                     <span class="material-icons text-base">delete</span>
                   </button>
+
+                  <!-- Add to Cart -->
                   <button
                     (click)="storeService.addToCart(prod, 1)"
                     [disabled]="prod.stock <= 0"
-                    class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-black flex items-center gap-1 transition-all active:scale-95 disabled:opacity-50"
+                    class="px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-black flex items-center gap-1 transition-all active:scale-95 disabled:opacity-50"
                   >
                     <span class="material-icons text-sm">add_shopping_cart</span>
                     Pedir
@@ -323,6 +359,178 @@ import { Product } from '../../../core/models/product.model';
         </div>
       }
 
+      <!-- Product Details & WhatsApp Modal -->
+      @if (selectedProductForDetail) {
+        <div class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+          <div class="bg-zinc-900 border border-zinc-800 rounded-3xl max-w-2xl w-full p-6 space-y-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150 relative max-h-[92vh] overflow-y-auto">
+            
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between border-b border-zinc-800/80 pb-3">
+              <div class="flex items-center gap-2.5 min-w-0">
+                <span class="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center">
+                  <span class="material-icons text-xl">local_bar</span>
+                </span>
+                <div class="min-w-0">
+                  <span class="text-[10px] text-fuchsia-400 font-mono font-bold uppercase tracking-wider block">Detalles de Bebida • Carta Nocturna</span>
+                  <h3 class="font-heading text-lg font-bold text-white truncate">
+                    {{ selectedProductForDetail.name }}
+                  </h3>
+                </div>
+              </div>
+              <button (click)="closeProductDetailModal()" class="text-zinc-500 hover:text-white p-1 rounded-lg">
+                <span class="material-icons">close</span>
+              </button>
+            </div>
+
+            <!-- Two-column Detail Content -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <!-- Left: Image and badges -->
+              <div class="space-y-3">
+                <div class="relative h-64 rounded-2xl overflow-hidden bg-zinc-950 border border-zinc-800 shadow-inner group">
+                  <img
+                    [src]="selectedProductForDetail.imageUrl"
+                    [alt]="selectedProductForDetail.name"
+                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                  />
+                  <div class="absolute inset-0 bg-gradient-to-t from-zinc-950/80 via-transparent to-transparent"></div>
+
+                  <!-- Price tag -->
+                  <div class="absolute bottom-3 left-3 px-3 py-1.5 rounded-xl bg-zinc-950/90 backdrop-blur-md border border-white/10 text-sm font-extrabold text-amber-400 shadow-lg">
+                    {{ selectedProductForDetail.price | copCurrency }}
+                  </div>
+
+                  @if (selectedProductForDetail.alcoholPercentage) {
+                    <div class="absolute top-3 left-3 px-2.5 py-1 rounded-lg bg-zinc-900/90 backdrop-blur-md border border-white/10 text-xs font-bold text-violet-300">
+                      {{ selectedProductForDetail.alcoholPercentage }}
+                    </div>
+                  }
+                </div>
+
+                <!-- Info Badges -->
+                <div class="flex flex-wrap gap-2 text-xs">
+                  <span class="px-2.5 py-1 rounded-lg bg-zinc-800 text-zinc-300 font-semibold flex items-center gap-1">
+                    <span class="material-icons text-sm text-fuchsia-400">category</span>
+                    {{ selectedProductForDetail.categoryName || 'Bebida' }}
+                  </span>
+                  @if (selectedProductForDetail.volumeOrServing) {
+                    <span class="px-2.5 py-1 rounded-lg bg-zinc-800 text-zinc-300 font-semibold flex items-center gap-1">
+                      <span class="material-icons text-sm text-amber-400">liquor</span>
+                      {{ selectedProductForDetail.volumeOrServing }}
+                    </span>
+                  }
+                  <span class="px-2.5 py-1 rounded-lg bg-zinc-800 text-zinc-300 font-semibold flex items-center gap-1">
+                    <span class="material-icons text-sm text-emerald-400">check_circle</span>
+                    Stock: {{ selectedProductForDetail.stock }} disp.
+                  </span>
+                </div>
+              </div>
+
+              <!-- Right: Detailed description, ingredients and order forms -->
+              <div class="space-y-4 flex flex-col justify-between">
+                <div class="space-y-3">
+                  <div>
+                    <h4 class="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1">Descripción & Presentación</h4>
+                    <p class="text-xs text-zinc-200 leading-relaxed bg-zinc-950/60 p-3 rounded-xl border border-zinc-800/80">
+                      {{ selectedProductForDetail.description }}
+                    </p>
+                  </div>
+
+                  @if (selectedProductForDetail.ingredients && selectedProductForDetail.ingredients.length > 0) {
+                    <div>
+                      <h4 class="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Ingredientes / Servicio Incluido</h4>
+                      <div class="flex flex-wrap gap-1.5">
+                        @for (ing of selectedProductForDetail.ingredients; track ing) {
+                          <span class="px-2.5 py-1 rounded-lg bg-violet-950/50 border border-violet-500/20 text-violet-300 text-[11px] font-medium flex items-center gap-1">
+                            <span class="material-icons text-xs text-violet-400">check</span>
+                            {{ ing }}
+                          </span>
+                        }
+                      </div>
+                    </div>
+                  }
+
+                  @if (selectedProductForDetail.barName) {
+                    <div class="p-3 rounded-xl bg-zinc-950/80 border border-zinc-800 flex items-center justify-between text-xs">
+                      <div>
+                        <span class="text-zinc-500 block text-[10px]">Bar Establecimiento</span>
+                        <strong class="text-white">{{ selectedProductForDetail.barName }}</strong>
+                      </div>
+                      <span class="material-icons text-fuchsia-400">store</span>
+                    </div>
+                  }
+
+                  <!-- Location / Table input -->
+                  <div>
+                    <label class="block text-xs font-semibold text-zinc-300 mb-1">Mesa o Ubicación de Entrega</label>
+                    <input
+                      type="text"
+                      [(ngModel)]="detailLocation"
+                      placeholder="Ej. Mesa 12 (Zona Terraza) o Palco VIP"
+                      class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-zinc-100 focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+
+                  <!-- Quantity selector -->
+                  <div class="flex items-center justify-between p-3 rounded-xl bg-zinc-950 border border-zinc-800">
+                    <span class="text-xs font-semibold text-zinc-300">Cantidad a pedir:</span>
+                    <div class="flex items-center gap-3">
+                      <button
+                        type="button"
+                        (click)="decrementDetailQty()"
+                        class="w-8 h-8 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white font-bold flex items-center justify-center transition-colors"
+                      >
+                        -
+                      </button>
+                      <span class="font-bold text-white text-sm w-6 text-center">{{ detailQuantity }}</span>
+                      <button
+                        type="button"
+                        (click)="incrementDetailQty()"
+                        class="w-8 h-8 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white font-bold flex items-center justify-center transition-colors"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="flex justify-between items-center text-xs px-1">
+                    <span class="text-zinc-400">Total calculado:</span>
+                    <strong class="text-amber-400 font-extrabold text-base">
+                      {{ (selectedProductForDetail.price * detailQuantity) | copCurrency }}
+                    </strong>
+                  </div>
+                </div>
+
+                <!-- Action buttons: WhatsApp & Cart -->
+                <div class="space-y-2 pt-2 border-t border-zinc-800">
+                  <!-- Direct WhatsApp Button -->
+                  <a
+                    [href]="getDetailWhatsAppUrl()"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="w-full py-3 px-4 rounded-xl font-extrabold text-xs text-white bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 active:scale-95 transition-all text-center"
+                  >
+                    <span class="material-icons text-base">chat</span>
+                    Pedir por WhatsApp Directo
+                  </a>
+
+                  <!-- Add to Cart button -->
+                  <button
+                    type="button"
+                    (click)="addDetailToCart()"
+                    [disabled]="selectedProductForDetail.stock <= 0"
+                    class="w-full py-2.5 px-4 rounded-xl font-bold text-xs text-black bg-amber-500 hover:bg-amber-400 flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50"
+                  >
+                    <span class="material-icons text-base">add_shopping_cart</span>
+                    Agregar al Carrito de la App
+                  </button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      }
+
       <!-- Add Product Modal -->
       @if (showAddProductModal) {
         <div class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
@@ -427,6 +635,9 @@ export class ProductosComponent {
   public showDeleteConfirmModal = false;
   public showClearAllModal = false;
   public productToDelete: Product | null = null;
+  public selectedProductForDetail: Product | null = null;
+  public detailQuantity = 1;
+  public detailLocation = 'Mesa 12';
 
   public productForm = this.fb.group({
     name: ['', [Validators.required]],
@@ -448,6 +659,40 @@ export class ProductosComponent {
     }
     return list;
   });
+
+  public openProductDetailModal(prod: Product) {
+    this.selectedProductForDetail = prod;
+    this.detailQuantity = 1;
+    this.detailLocation = 'Mesa 12';
+  }
+
+  public closeProductDetailModal() {
+    this.selectedProductForDetail = null;
+  }
+
+  public incrementDetailQty() {
+    if (this.selectedProductForDetail && this.detailQuantity < this.selectedProductForDetail.stock) {
+      this.detailQuantity++;
+    }
+  }
+
+  public decrementDetailQty() {
+    if (this.detailQuantity > 1) {
+      this.detailQuantity--;
+    }
+  }
+
+  public getDetailWhatsAppUrl(): string {
+    if (!this.selectedProductForDetail) return '';
+    return this.storeService.getProductWhatsAppUrl(this.selectedProductForDetail, this.detailQuantity, this.detailLocation);
+  }
+
+  public addDetailToCart() {
+    if (this.selectedProductForDetail) {
+      this.storeService.addToCart(this.selectedProductForDetail, this.detailQuantity);
+      this.closeProductDetailModal();
+    }
+  }
 
   public openDeleteConfirmModal(prod: Product) {
     this.productToDelete = prod;

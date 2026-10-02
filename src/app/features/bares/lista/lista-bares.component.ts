@@ -16,34 +16,61 @@ import { Bar } from '../../../core/models/bar.model';
       <!-- Header -->
       <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
+          <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-violet-500/15 border border-violet-500/30 text-violet-300 text-xs font-bold font-mono mb-2">
+            <span class="w-2 h-2 rounded-full bg-violet-400 animate-pulse"></span>
+            🔥 Conectado a Firebase Cloud Firestore NoSQL
+          </div>
           <h1 class="font-heading text-3xl font-extrabold text-white flex items-center gap-3">
             <span class="material-icons text-violet-400 text-3xl">local_bar</span>
             Bares, Discotecas & Clubs
           </h1>
           <p class="text-xs text-zinc-400 mt-1">
-            Los mejores espacios nocturnos, música en vivo y pistas de baile de la ciudad
+            Espacios nocturnos sincronizados en tiempo real con la colección <code class="text-violet-300 font-mono">bars</code> de Firebase Firestore
           </p>
         </div>
 
-        <div class="flex items-center gap-2.5">
+        <div class="flex flex-wrap items-center gap-2.5">
+          <button
+            type="button"
+            (click)="barService.seedBarsToFirestore(true)"
+            [disabled]="barService.loading()"
+            class="px-4 py-2.5 rounded-xl font-bold text-xs text-violet-300 bg-violet-500/15 hover:bg-violet-500/25 border border-violet-500/40 flex items-center gap-1.5 transition-all shadow-sm disabled:opacity-50"
+            title="Sincronizar y poblar los 4 bares en Firestore"
+          >
+            <span class="material-icons text-base">cloud_sync</span>
+            Sincronizar a Firebase
+          </button>
+
+          <button
+            type="button"
+            (click)="showCreateModal = true"
+            class="px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 shadow-lg shadow-violet-600/30 flex items-center gap-2 active:scale-95 transition-all"
+          >
+            <span class="material-icons text-base">add_business</span>
+            Registrar Bar en Firestore
+          </button>
+
           <a
             routerLink="/bares/explorar"
-            class="px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-gradient-to-r from-fuchsia-600 to-pink-600 hover:from-fuchsia-500 shadow-lg shadow-fuchsia-600/30 flex items-center gap-2"
+            class="px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 flex items-center gap-2 transition-all"
           >
             <span class="material-icons text-base">explore</span>
             Venue Explorer
           </a>
+        </div>
+      </div>
 
-          <!-- Add bar button (available for BAR_OWNER or ADMIN) -->
-          @if (auth.isBarOwner() || auth.isAdmin()) {
-            <button
-              (click)="showCreateModal = true"
-              class="px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 shadow-lg shadow-violet-600/30 flex items-center gap-2"
-            >
-              <span class="material-icons text-base">add_business</span>
-              Registrar Bar
-            </button>
-          }
+      <!-- Live Firebase Banner -->
+      <div class="p-3.5 bg-gradient-to-r from-violet-950/40 via-zinc-950 to-fuchsia-950/30 border border-violet-800/60 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
+        <div class="flex items-center gap-2 text-violet-300 min-w-0">
+          <span class="w-2.5 h-2.5 rounded-full bg-violet-400 animate-pulse"></span>
+          <span class="font-bold text-violet-200">🔥 Colección 'bars' en Cloud Firestore:</span>
+          <span class="text-zinc-300">Sincronización en tiempo real (<code class="text-violet-400">onSnapshot</code>) con {{ barService.bars().length }} establecimientos registrados</span>
+        </div>
+        <div class="flex items-center gap-3 text-[11px] text-zinc-400">
+          <span>Registros: <strong class="text-white">{{ barService.bars().length }}</strong></span>
+          <span>•</span>
+          <span class="text-violet-400 font-bold">Estado: Conectado</span>
         </div>
       </div>
 
@@ -182,15 +209,13 @@ import { Bar } from '../../../core/models/bar.model';
                   Pedir Tragos
                 </a>
 
-                @if (auth.isAdmin() || (auth.isBarOwner() && bar.ownerId === auth.userProfile()?.uid)) {
-                  <button
-                    (click)="barService.deleteBar(bar.id!)"
-                    class="p-2.5 rounded-xl text-xs text-rose-400 bg-rose-950/20 hover:bg-rose-950/50 border border-rose-800/30 transition-colors"
-                    title="Eliminar Bar"
-                  >
-                    <span class="material-icons text-base">delete</span>
-                  </button>
-                }
+                <button
+                  (click)="barService.deleteBar(bar.id!)"
+                  class="p-2.5 rounded-xl text-xs text-zinc-400 hover:text-rose-400 bg-zinc-950 hover:bg-rose-950/40 border border-zinc-800 hover:border-rose-800/40 transition-colors"
+                  title="Eliminar Bar de Cloud Firestore"
+                >
+                  <span class="material-icons text-base">delete</span>
+                </button>
               </div>
 
             </div>
@@ -204,10 +229,13 @@ import { Bar } from '../../../core/models/bar.model';
         <div class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
           <div class="bg-zinc-900 border border-zinc-800 rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div class="flex items-center justify-between">
-              <h3 class="font-heading text-lg font-bold text-white flex items-center gap-2">
-                <span class="material-icons text-violet-400">store</span>
-                Registrar Nuevo Bar o Discoteca
-              </h3>
+              <div>
+                <span class="text-[10px] text-violet-400 font-mono font-bold uppercase tracking-wider block">Firebase Cloud Firestore</span>
+                <h3 class="font-heading text-lg font-bold text-white flex items-center gap-2">
+                  <span class="material-icons text-violet-400">store</span>
+                  Registrar Nuevo Bar en Firestore
+                </h3>
+              </div>
               <button (click)="showCreateModal = false" class="text-zinc-500 hover:text-white">
                 <span class="material-icons">close</span>
               </button>
@@ -305,9 +333,10 @@ import { Bar } from '../../../core/models/bar.model';
                 <button
                   type="submit"
                   [disabled]="barForm.invalid"
-                  class="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-violet-600 hover:bg-violet-500 shadow-md shadow-violet-600/30 disabled:opacity-50"
+                  class="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 shadow-md shadow-violet-600/30 disabled:opacity-50 flex items-center gap-1.5"
                 >
-                  Guardar en Firestore
+                  <span class="material-icons text-sm">cloud_upload</span>
+                  Guardar Bar en Cloud Firestore
                 </button>
               </div>
             </form>

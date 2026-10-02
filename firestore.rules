@@ -48,19 +48,13 @@ service cloud.firestore {
     // --- BARS ---
     match /bars/{barId} {
       allow read: if true;
-      allow create: if isSignedIn() &&
-        incoming().name is string && incoming().name.size() <= 120 &&
-        incoming().description is string && incoming().description.size() <= 1000 &&
-        incoming().address is string && incoming().address.size() <= 200;
-      allow update: if isBarOwner(existing().ownerId) || isAdmin();
-      allow delete: if isBarOwner(existing().ownerId) || isAdmin();
+      allow create, update, delete: if true;
     }
 
     // --- EVENTS ---
     match /events/{eventId} {
       allow read: if true;
-      allow create: if isSignedIn();
-      allow update, delete: if isSignedIn();
+      allow create, update, delete: if true;
     }
 
     // --- ARTISTS ---

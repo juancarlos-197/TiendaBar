@@ -36,7 +36,10 @@ const INITIAL_PRODUCTS: Product[] = [
     barId: 'bar-sotareno',
     barName: 'El Sotareño',
     active: true,
-    volumeOrServing: 'Botella 750ml'
+    volumeOrServing: 'Botella 750ml',
+    whatsappNumber: '+573124567890',
+    alcoholPercentage: '40% Vol.',
+    ingredients: ['Malta escocesa añeja', '4 Mezcladores', 'Hielo cristalino']
   },
   {
     id: 'prod-aguardiente-caucano',
@@ -50,7 +53,10 @@ const INITIAL_PRODUCTS: Product[] = [
     barId: 'bar-sotareno',
     barName: 'El Sotareño',
     active: true,
-    volumeOrServing: 'Botella 750ml'
+    volumeOrServing: 'Botella 750ml',
+    whatsappNumber: '+573124567890',
+    alcoholPercentage: '29% Vol.',
+    ingredients: ['Anís fino del Cauca', 'Caña de azúcar', 'Servicio con sal y limones']
   },
   {
     id: 'prod-mojito-pasion',
@@ -64,7 +70,10 @@ const INITIAL_PRODUCTS: Product[] = [
     barId: 'bar-rooftop-360',
     barName: 'Sky Lounge 360',
     active: true,
-    volumeOrServing: 'Copa 350ml'
+    volumeOrServing: 'Copa 350ml',
+    whatsappNumber: '+573159904433',
+    alcoholPercentage: '14% Vol.',
+    ingredients: ['Ron añejo 8 años', 'Pulpa de maracuyá', 'Menta fresca', 'Almíbar artesanal']
   },
   {
     id: 'prod-gin-tonic-rosas',
@@ -78,7 +87,10 @@ const INITIAL_PRODUCTS: Product[] = [
     barId: 'bar-eclipse',
     barName: 'Club Eclipse',
     active: true,
-    volumeOrServing: 'Copa Balón'
+    volumeOrServing: 'Copa Balón',
+    whatsappNumber: '+573208891122',
+    alcoholPercentage: '15% Vol.',
+    ingredients: ['Ginebra botánica', 'Agua tónica Fever-Tree', 'Pétalos de rosa', 'Frutos rojos']
   },
   {
     id: 'prod-champagne-moet',
@@ -92,7 +104,10 @@ const INITIAL_PRODUCTS: Product[] = [
     barId: 'bar-neon-discoteca',
     barName: 'La Clandestina Club',
     active: true,
-    volumeOrServing: 'Botella 750ml VIP'
+    volumeOrServing: 'Botella 750ml VIP',
+    whatsappNumber: '+573012237788',
+    alcoholPercentage: '12% Vol.',
+    ingredients: ['Chardonnay & Pinot Noir', 'Hielera LED luminosa', 'Show de bengalas en mesa']
   },
   {
     id: 'prod-cerveza-artesanal',
@@ -106,7 +121,10 @@ const INITIAL_PRODUCTS: Product[] = [
     barId: 'bar-sotareno',
     barName: 'El Sotareño',
     active: true,
-    volumeOrServing: '6 Botellas x 330ml'
+    volumeOrServing: '6 Botellas x 330ml',
+    whatsappNumber: '+573124567890',
+    alcoholPercentage: '6.2% Vol.',
+    ingredients: ['Lúpulos Citra & Mosaic', 'Maltas tostadas', 'Balde con hielo picado']
   },
   {
     id: 'prod-nachos-supremos',
@@ -120,7 +138,9 @@ const INITIAL_PRODUCTS: Product[] = [
     barId: 'bar-rooftop-360',
     barName: 'Sky Lounge 360',
     active: true,
-    volumeOrServing: 'Porción para compartir'
+    volumeOrServing: 'Porción para compartir',
+    whatsappNumber: '+573159904433',
+    ingredients: ['Totopos de maíz nixtamalizado', 'Queso cheddar fundido', 'Guacamole hass', 'Birria tierna']
   },
   // --- 3 NUEVOS PRODUCTOS AÑADIDOS ---
   {
@@ -135,7 +155,10 @@ const INITIAL_PRODUCTS: Product[] = [
     barId: 'bar-sotareno',
     barName: 'El Sotareño VIP',
     active: true,
-    volumeOrServing: 'Botella 700ml'
+    volumeOrServing: 'Botella 700ml',
+    whatsappNumber: '+573124567890',
+    alcoholPercentage: '38% Vol.',
+    ingredients: ['100% Agave azul añejado', 'Sangrita de tomate y naranja', 'Limones y sal marina']
   },
   {
     id: 'prod-aperol-spritz-veneto',
@@ -149,7 +172,10 @@ const INITIAL_PRODUCTS: Product[] = [
     barId: 'bar-rooftop-360',
     barName: 'Sky Lounge 360',
     active: true,
-    volumeOrServing: 'Copa Balón 400ml'
+    volumeOrServing: 'Copa Balón 400ml',
+    whatsappNumber: '+573159904433',
+    alcoholPercentage: '11% Vol.',
+    ingredients: ['Aperol italiano', 'Prosecco DOC espumoso', 'Soda San Pellegrino', 'Naranja valenciana']
   },
   {
     id: 'prod-cubetazo-corona',
@@ -163,7 +189,10 @@ const INITIAL_PRODUCTS: Product[] = [
     barId: 'bar-eclipse',
     barName: 'Club Eclipse',
     active: true,
-    volumeOrServing: 'Balde 5 x 355ml'
+    volumeOrServing: 'Balde 5 x 355ml',
+    whatsappNumber: '+573208891122',
+    alcoholPercentage: '4.5% Vol.',
+    ingredients: ['5 Cervezas Corona Extra', 'Hielo escarchado', 'Limones en cuartos', 'Sal fina']
   }
 ];
 
@@ -274,6 +303,9 @@ export class StoreService {
                 barName: data['barName'] || '',
                 active: data['active'] ?? true,
                 volumeOrServing: data['volumeOrServing'] || '',
+                whatsappNumber: data['whatsappNumber'] || '+573124567890',
+                ingredients: data['ingredients'] || [],
+                alcoholPercentage: data['alcoholPercentage'] || '',
                 createdAt: data['createdAt']
               });
             });
@@ -326,6 +358,9 @@ export class StoreService {
           barName: prod.barName || '',
           active: prod.active ?? true,
           volumeOrServing: prod.volumeOrServing || '',
+          whatsappNumber: prod.whatsappNumber || '+573124567890',
+          ingredients: prod.ingredients || [],
+          alcoholPercentage: prod.alcoholPercentage || '',
           createdAt: new Date().toISOString()
         }, { merge: true });
       }
@@ -340,6 +375,58 @@ export class StoreService {
       this.isLoading.set(false);
       this.fb.handleError(err, OperationType.WRITE, 'products');
     }
+  }
+
+  /**
+   * Generates a direct WhatsApp order URL for a specific product
+   */
+  public getProductWhatsAppUrl(product: Product, quantity = 1, location = 'Mesa 10'): string {
+    const rawPhone = product.whatsappNumber?.replace(/[^0-9]/g, '') || '573124567890';
+    const total = (product.price * quantity).toLocaleString('es-CO');
+    const user = this.auth.userProfile();
+
+    const text = `¡Hola! 👋 Quiero pedir desde la carta de Nocturna Club:\n\n` +
+      `🍸 *Bebida:* ${product.name}\n` +
+      `🔢 *Cantidad:* ${quantity}\n` +
+      `💰 *Total:* $${total} COP\n` +
+      `📍 *Bar:* ${product.barName || 'Bar Asociado'}\n` +
+      `🛋️ *Mesa / Ubicación:* ${location}\n` +
+      `👤 *Cliente:* ${user?.name || 'Cliente de Club'}\n\n` +
+      `¿Me confirman para servir en barra o mesa, por favor?`;
+
+    return `https://wa.me/${rawPhone}?text=${encodeURIComponent(text)}`;
+  }
+
+  /**
+   * Generates a direct WhatsApp order URL for the entire shopping cart
+   */
+  public getCartWhatsAppUrl(deliveryMethod: DeliveryMethod, tableNumber?: string, notes?: string): string {
+    const items = this.cart();
+    if (!items.length) return '';
+    const phone = '573124567890';
+    const total = this.cartTotal().toLocaleString('es-CO');
+    const user = this.auth.userProfile();
+
+    let itemsList = '';
+    items.forEach((item, idx) => {
+      itemsList += `${idx + 1}. ${item.product.name} x${item.quantity} - $${(item.product.price * item.quantity).toLocaleString('es-CO')} COP\n`;
+    });
+
+    const methodLabels: Record<DeliveryMethod, string> = {
+      TABLE: `Mesa ${tableNumber || 'General'}`,
+      VIP_LOUNGE: `Palco VIP ${tableNumber || '1'}`,
+      BAR_PICKUP: 'Retiro en Barra'
+    };
+
+    const text = `¡Hola! 👋 Deseo realizar un pedido de bar en Nocturna Club:\n\n` +
+      `👤 *Cliente:* ${user?.name || 'Cliente de Club'}\n` +
+      `📍 *Entrega:* ${methodLabels[deliveryMethod]}\n` +
+      (notes ? `📝 *Instrucciones:* ${notes}\n` : '') +
+      `\n🛍️ *Detalle del Pedido:*\n${itemsList}\n` +
+      `💵 *TOTAL A PAGAR:* $${total} COP\n\n` +
+      `¿Podrían confirmarme el tiempo estimado de preparación en barra? Gracias.`;
+
+    return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
   }
 
   private async fetchOrders() {

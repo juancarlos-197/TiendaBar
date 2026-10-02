@@ -4,11 +4,12 @@ import {
   getDocs,
   doc,
   getDoc,
+  setDoc,
   addDoc,
   updateDoc,
   deleteDoc,
-  query,
-  where
+  onSnapshot,
+  Unsubscribe
 } from 'firebase/firestore';
 import { FirebaseService, OperationType } from './firebase.service';
 import { NotificationService } from './notification.service';
@@ -209,60 +210,187 @@ export class BarService {
   public bars = signal<Bar[]>(INITIAL_BARS);
   public events = signal<BarEvent[]>(INITIAL_EVENTS);
   public loading = signal<boolean>(false);
+  public isFirestoreConnected = signal<boolean>(false);
+
+  private unsubscribeBars: Unsubscribe | null = null;
+  private unsubscribeEvents: Unsubscribe | null = null;
 
   constructor() {
-    this.fetchBars();
-    this.fetchEvents();
+    this.initBarsSync();
+    this.initEventsSync();
   }
 
-  public async fetchBars(): Promise<void> {
-    if (!this.fb.firestore) return;
+  /**
+   * Initializes real-time listener for 'bars' collection in Cloud Firestore
+   */
+  public initBarsSync() {
+    if (!this.fb.firestore) {
+      this.bars.set(INITIAL_BARS);
+      return;
+    }
+
+    this.loading.set(true);
+    const barsCol = collection(this.fb.firestore, 'bars');
+
     try {
-      this.loading.set(true);
-      const querySnap = await getDocs(collection(this.fb.firestore, 'bars'));
-      if (!querySnap.empty) {
-        const loadedBars: Bar[] = [];
-        querySnap.forEach(docSnap => {
-          loadedBars.push({ id: docSnap.id, ...(docSnap.data() as Bar) });
-        });
-        this.bars.set(loadedBars);
-      } else {
-        // Seed initial bars
-        this.seedInitialBars();
-      }
+      this.unsubscribeBars = onSnapshot(
+        barsCol,
+        (snap) => {
+          this.isFirestoreConnected.set(true);
+          this.loading.set(false);
+
+          if (snap.empty) {
+            this.seedBarsToFirestore(false);
+          } else {
+            const list: Bar[] = [];
+            snap.forEach((d) => {
+              const data = d.data();
+              list.push({
+                id: d.id,
+                name: data['name'] || 'Bar',
+                description: data['description'] || '',
+                address: data['address'] || '',
+                city: data['city'] || 'Popayán',
+                phone: data['phone'] || '',
+                imageUrl: data['imageUrl'] || 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?auto=format&fit=crop&w=1200&q=80',
+                musicGenre: data['musicGenre'] || 'Crossover',
+                capacity: Number(data['capacity']) || 150,
+                rating: Number(data['rating']) || 4.5,
+                openingHours: data['openingHours'] || '5:00 PM - 2:00 AM',
+                active: data['active'] ?? true,
+                ownerId: data['ownerId'] || 'owner-general',
+                features: data['features'] || ['Música en Vivo', 'Barra Coctelera'],
+                dressCode: data['dressCode'] || 'Casual',
+                minAge: Number(data['minAge']) || 18,
+                mapUrl: data['mapUrl'] || '',
+                galleryUrls: data['galleryUrls'] || [data['imageUrl'] || 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?auto=format&fit=crop&w=1200&q=80'],
+                schedule: data['schedule'] || [],
+                createdAt: data['createdAt']
+              });
+            });
+            this.bars.set(list);
+          }
+        },
+        (error) => {
+          this.loading.set(false);
+          console.warn('Firestore bars onSnapshot error:', error);
+          this.fb.handleError(error, OperationType.GET, 'bars');
+          if (this.bars().length === 0) {
+            this.bars.set(INITIAL_BARS);
+          }
+        }
+      );
     } catch (err) {
-      console.warn('Bars fetch fallback to defaults:', err);
-    } finally {
       this.loading.set(false);
+      console.warn('Bars listener error:', err);
+      this.bars.set(INITIAL_BARS);
     }
   }
 
-  private async seedInitialBars() {
-    if (!this.fb.firestore) return;
+  /**
+   * Initializes real-time listener for 'events' collection in Cloud Firestore
+   */
+  public initEventsSync() {
+    if (!this.fb.firestore) {
+      this.events.set(INITIAL_EVENTS);
+      return;
+    }
+
+    const eventsCol = collection(this.fb.firestore, 'events');
+
+    try {
+      this.unsubscribeEvents = onSnapshot(
+        eventsCol,
+        (snap) => {
+          this.isFirestoreConnected.set(true);
+
+          if (snap.empty) {
+            this.seedEventsToFirestore(false);
+          } else {
+            const list: BarEvent[] = [];
+            snap.forEach((d) => {
+              const data = d.data();
+              list.push({
+                id: d.id,
+                barId: data['barId'] || '',
+                barName: data['barName'] || 'Bar Anfitrión',
+                title: data['title'] || 'Evento',
+                description: data['description'] || '',
+                date: data['date'] || '2026-10-15',
+                time: data['time'] || '21:00',
+                coverPrice: Number(data['coverPrice']) || 0,
+                ticketStock: Number(data['ticketStock']) || 100,
+                imageUrl: data['imageUrl'] || 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=800&q=80',
+                active: data['active'] ?? true,
+                djOrArtist: data['djOrArtist'] || '',
+                createdAt: data['createdAt']
+              });
+            });
+            this.events.set(list);
+          }
+        },
+        (error) => {
+          console.warn('Firestore events onSnapshot error:', error);
+          this.fb.handleError(error, OperationType.GET, 'events');
+          if (this.events().length === 0) {
+            this.events.set(INITIAL_EVENTS);
+          }
+        }
+      );
+    } catch (err) {
+      console.warn('Events listener error:', err);
+      this.events.set(INITIAL_EVENTS);
+    }
+  }
+
+  /**
+   * Seeds realistic venue establishments to Cloud Firestore
+   */
+  public async seedBarsToFirestore(notifyUser = true): Promise<void> {
+    if (!this.fb.firestore) {
+      this.bars.set(INITIAL_BARS);
+      if (notifyUser) this.notify.info('Bares cargados localmente.');
+      return;
+    }
+
+    this.loading.set(true);
     try {
       for (const bar of INITIAL_BARS) {
-        await addDoc(collection(this.fb.firestore, 'bars'), bar);
+        const barId = bar.id || ('bar-' + Math.random().toString(36).substring(2, 9));
+        const docRef = doc(this.fb.firestore, 'bars', barId);
+        await setDoc(docRef, { ...bar, createdAt: new Date().toISOString() }, { merge: true });
       }
-    } catch (e) {
-      console.warn('Seeding bars warning:', e);
+      this.loading.set(false);
+      if (notifyUser) {
+        this.notify.success(`¡${INITIAL_BARS.length} bares sincronizados con Cloud Firestore!`, 'Bares Firebase');
+      }
+    } catch (err) {
+      this.loading.set(false);
+      this.fb.handleError(err, OperationType.WRITE, 'bars');
     }
   }
 
-  public async fetchEvents(): Promise<void> {
-    if (!this.fb.firestore) return;
+  /**
+   * Seeds party events to Cloud Firestore
+   */
+  public async seedEventsToFirestore(notifyUser = true): Promise<void> {
+    if (!this.fb.firestore) {
+      this.events.set(INITIAL_EVENTS);
+      if (notifyUser) this.notify.info('Eventos cargados localmente.');
+      return;
+    }
+
     try {
-      const snap = await getDocs(collection(this.fb.firestore, 'events'));
-      if (!snap.empty) {
-        const list: BarEvent[] = [];
-        snap.forEach(d => list.push({ id: d.id, ...(d.data() as BarEvent) }));
-        this.events.set(list);
-      } else {
-        for (const ev of INITIAL_EVENTS) {
-          await addDoc(collection(this.fb.firestore, 'events'), ev);
-        }
+      for (const ev of INITIAL_EVENTS) {
+        const evId = ev.id || ('event-' + Math.random().toString(36).substring(2, 9));
+        const docRef = doc(this.fb.firestore, 'events', evId);
+        await setDoc(docRef, { ...ev, createdAt: new Date().toISOString() }, { merge: true });
+      }
+      if (notifyUser) {
+        this.notify.success(`¡${INITIAL_EVENTS.length} eventos sincronizados con Cloud Firestore!`, 'Eventos Firebase');
       }
     } catch (err) {
-      console.warn('Events fetch fallback:', err);
+      this.fb.handleError(err, OperationType.WRITE, 'events');
     }
   }
 
@@ -270,25 +398,31 @@ export class BarService {
     return this.bars().find(b => b.id === id);
   }
 
+  /**
+   * Creates/Registers a new Bar in Cloud Firestore
+   */
   public async createBar(barData: Omit<Bar, 'id'>): Promise<Bar> {
     this.loading.set(true);
+    const id = 'bar-' + Math.random().toString(36).substring(2, 9);
     const newBar: Bar = {
       ...barData,
-      id: 'bar-' + Date.now(),
+      id,
       createdAt: new Date().toISOString()
     };
 
     if (this.fb.firestore) {
       try {
-        const docRef = await addDoc(collection(this.fb.firestore, 'bars'), newBar);
-        newBar.id = docRef.id;
+        const docRef = doc(this.fb.firestore, 'bars', id);
+        await setDoc(docRef, newBar);
+        this.notify.success(`Bar "${newBar.name}" registrado con éxito en Cloud Firestore`);
       } catch (err) {
-        this.fb.handleError(err, OperationType.CREATE, 'bars');
+        this.fb.handleError(err, OperationType.CREATE, `bars/${id}`);
       }
+    } else {
+      this.bars.update(list => [newBar, ...list]);
+      this.notify.success(`Bar "${newBar.name}" registrado localmente`);
     }
 
-    this.bars.update(list => [newBar, ...list]);
-    this.notify.success(`Bar "${newBar.name}" registrado con éxito`);
     this.loading.set(false);
     return newBar;
   }
@@ -302,40 +436,74 @@ export class BarService {
       }
     }
     this.bars.update(list => list.map(b => b.id === id ? { ...b, ...updates } : b));
-    this.notify.success('Información del bar actualizada');
+    this.notify.success('Información del bar actualizada en Cloud Firestore');
   }
 
   public async deleteBar(id: string): Promise<void> {
     if (this.fb.firestore) {
       try {
         await deleteDoc(doc(this.fb.firestore, 'bars', id));
+        this.notify.info('Bar eliminado de Cloud Firestore');
       } catch (err) {
         this.fb.handleError(err, OperationType.DELETE, `bars/${id}`);
       }
+    } else {
+      this.bars.update(list => list.filter(b => b.id !== id));
+      this.notify.info('Bar eliminado localmente');
     }
-    this.bars.update(list => list.filter(b => b.id !== id));
-    this.notify.info('Bar eliminado');
   }
 
+  /**
+   * Creates/Registers a new Event in Cloud Firestore
+   */
   public async createEvent(eventData: Omit<BarEvent, 'id'>): Promise<BarEvent> {
+    const id = 'event-' + Math.random().toString(36).substring(2, 9);
     const newEvent: BarEvent = {
       ...eventData,
-      id: 'event-' + Date.now(),
+      id,
       createdAt: new Date().toISOString()
     };
 
     if (this.fb.firestore) {
       try {
-        const docRef = await addDoc(collection(this.fb.firestore, 'events'), newEvent);
-        newEvent.id = docRef.id;
+        const docRef = doc(this.fb.firestore, 'events', id);
+        await setDoc(docRef, newEvent);
+        this.notify.success(`Evento "${newEvent.title}" registrado con éxito en Cloud Firestore`);
       } catch (err) {
-        this.fb.handleError(err, OperationType.CREATE, 'events');
+        this.fb.handleError(err, OperationType.CREATE, `events/${id}`);
       }
+    } else {
+      this.events.update(list => [newEvent, ...list]);
+      this.notify.success(`Evento "${newEvent.title}" registrado localmente`);
     }
 
-    this.events.update(list => [newEvent, ...list]);
-    this.notify.success(`Evento "${newEvent.title}" publicado`);
     return newEvent;
+  }
+
+  public async updateEvent(id: string, updates: Partial<BarEvent>): Promise<void> {
+    if (this.fb.firestore) {
+      try {
+        await updateDoc(doc(this.fb.firestore, 'events', id), updates);
+      } catch (err) {
+        this.fb.handleError(err, OperationType.UPDATE, `events/${id}`);
+      }
+    }
+    this.events.update(list => list.map(e => e.id === id ? { ...e, ...updates } : e));
+    this.notify.success('Evento actualizado en Cloud Firestore');
+  }
+
+  public async deleteEvent(id: string): Promise<void> {
+    if (this.fb.firestore) {
+      try {
+        await deleteDoc(doc(this.fb.firestore, 'events', id));
+        this.notify.info('Evento eliminado de Cloud Firestore');
+      } catch (err) {
+        this.fb.handleError(err, OperationType.DELETE, `events/${id}`);
+      }
+    } else {
+      this.events.update(list => list.filter(e => e.id !== id));
+      this.notify.info('Evento eliminado localmente');
+    }
   }
 
   public buyTicket(eventId: string, qty: number = 1): boolean {
@@ -346,9 +514,15 @@ export class BarService {
       return false;
     }
 
-    this.events.update(list =>
-      list.map(e => e.id === eventId ? { ...e, ticketStock: e.ticketStock - qty } : e)
-    );
+    const updatedStock = event.ticketStock - qty;
+    if (this.fb.firestore) {
+      this.updateEvent(eventId, { ticketStock: updatedStock });
+    } else {
+      this.events.update(list =>
+        list.map(e => e.id === eventId ? { ...e, ticketStock: updatedStock } : e)
+      );
+    }
+
     this.notify.success(`¡Has reservado ${qty} entrada(s) para "${event.title}"! Mostrando pase digital.`);
     return true;
   }

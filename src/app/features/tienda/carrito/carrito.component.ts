@@ -163,13 +163,25 @@ import { DeliveryMethod } from '../../../core/models/product.model';
                 </div>
               </div>
 
-              <button
-                (click)="onSendOrder()"
-                class="w-full py-3 px-4 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-violet-600 via-fuchsia-600 to-amber-500 hover:from-violet-500 hover:to-amber-400 shadow-lg shadow-fuchsia-600/30 transition-transform active:scale-95 flex items-center justify-center gap-2"
-              >
-                <span class="material-icons text-base">send</span>
-                Enviar Pedido a la Barra
-              </button>
+              <div class="space-y-2">
+                <a
+                  [href]="getCartWhatsAppUrl()"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="w-full py-3 px-4 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 shadow-lg shadow-emerald-600/30 transition-transform active:scale-95 flex items-center justify-center gap-2 text-center"
+                >
+                  <span class="material-icons text-base">chat</span>
+                  Pedir y Despachar por WhatsApp
+                </a>
+
+                <button
+                  (click)="onSendOrder()"
+                  class="w-full py-3 px-4 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-violet-600 via-fuchsia-600 to-amber-500 hover:from-violet-500 hover:to-amber-400 shadow-lg shadow-fuchsia-600/30 transition-transform active:scale-95 flex items-center justify-center gap-2"
+                >
+                  <span class="material-icons text-base">send</span>
+                  Confirmar en la App
+                </button>
+              </div>
             </div>
           </div>
 
@@ -204,6 +216,10 @@ export class CarritoComponent {
   public deliveryMethod: DeliveryMethod = 'TABLE';
   public tableNumber = 'Mesa 7';
   public notes = '';
+
+  getCartWhatsAppUrl(): string {
+    return this.store.getCartWhatsAppUrl(this.deliveryMethod, this.tableNumber, this.notes);
+  }
 
   async onSendOrder() {
     const order = await this.store.checkout(this.deliveryMethod, this.tableNumber, this.notes);

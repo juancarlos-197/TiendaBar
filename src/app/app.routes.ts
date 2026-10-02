@@ -45,10 +45,14 @@ export const routes: Routes = [
   },
   {
     path: 'musica',
-    loadComponent: () => import('./features/musica/musica.component').then(m => m.MusicaComponent)
+    loadComponent: () => import('./features/musica/musica.component').then(m => m.MusicaComponent),
+    canActivate: [authGuard, roleGuard],
+    data: { roles: ['ADMIN'] }
   },
   {
     path: 'tienda',
+    canActivate: [authGuard, roleGuard],
+    data: { roles: ['ADMIN'] },
     children: [
       {
         path: '',

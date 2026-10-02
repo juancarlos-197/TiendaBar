@@ -4,7 +4,11 @@ import {
   getDocs,
   doc,
   addDoc,
-  updateDoc
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  onSnapshot,
+  Unsubscribe
 } from 'firebase/firestore';
 import { FirebaseService, OperationType } from './firebase.service';
 import { NotificationService } from './notification.service';
@@ -117,6 +121,49 @@ const INITIAL_PRODUCTS: Product[] = [
     barName: 'Sky Lounge 360',
     active: true,
     volumeOrServing: 'Porción para compartir'
+  },
+  // --- 3 NUEVOS PRODUCTOS AÑADIDOS ---
+  {
+    id: 'prod-tequila-don-julio-70',
+    name: 'Tequila Don Julio 70 Cristalino Añejo 700ml',
+    description: 'Tequila añejo cristalino filtrado en carbón activado, con suaves notas de vainilla, agave cocido y miel. Incluye sangrita de la casa y rodajas de lima.',
+    price: 320000,
+    categoryId: 'cat-licores',
+    categoryName: 'Licores & Botellas',
+    imageUrl: 'https://images.unsplash.com/photo-1516594798947-e65505dbb29d?auto=format&fit=crop&w=600&q=80',
+    stock: 15,
+    barId: 'bar-sotareno',
+    barName: 'El Sotareño VIP',
+    active: true,
+    volumeOrServing: 'Botella 700ml'
+  },
+  {
+    id: 'prod-aperol-spritz-veneto',
+    name: 'Cóctel Aperol Spritz Veneciano',
+    description: 'El cóctel veraniego por excelencia: Aperol amargo dulce, Prosecco DOC espumoso, golpe de soda y rodaja fresca de naranja en copa balón con hielo puro.',
+    price: 31000,
+    categoryId: 'cat-cocteles',
+    categoryName: 'Cócteles de Autor',
+    imageUrl: 'https://images.unsplash.com/photo-1560512823-829485b8bf24?auto=format&fit=crop&w=600&q=80',
+    stock: 50,
+    barId: 'bar-rooftop-360',
+    barName: 'Sky Lounge 360',
+    active: true,
+    volumeOrServing: 'Copa Balón 400ml'
+  },
+  {
+    id: 'prod-cubetazo-corona',
+    name: 'Cubetazo Cerveza Corona Extra (5 Botellas)',
+    description: 'Balde cervecero metálico con hielo escarchado, 5 botellas de Corona Extra bien frías servidas con sal fina y cuartos de limón criollo.',
+    price: 55000,
+    categoryId: 'cat-cervezas',
+    categoryName: 'Cervezas Artesanales & Rubias',
+    imageUrl: 'https://images.unsplash.com/photo-1538488881523-298f3254e060?auto=format&fit=crop&w=600&q=80',
+    stock: 35,
+    barId: 'bar-eclipse',
+    barName: 'Club Eclipse',
+    active: true,
+    volumeOrServing: 'Balde 5 x 355ml'
   }
 ];
 
@@ -166,6 +213,12 @@ export class StoreService {
   public products = signal<Product[]>(INITIAL_PRODUCTS);
   public orders = signal<Order[]>(INITIAL_ORDERS);
   public cart = signal<CartItem[]>([]);
+  public isFirestoreConnected = signal<boolean>(false);
+  public isLoading = signal<boolean>(false);
+
+  private unsubscribeProducts: Unsubscribe | null = null;
+  private hasAutoSeeded = false;
+  private userExplicitlyCleared = false;
 
   // Computed cart values
   public cartCount = computed(() => this.cart().reduce((sum, item) => sum + item.quantity, 0));
@@ -173,20 +226,119 @@ export class StoreService {
 
   constructor() {
     this.fetchOrders();
-    this.fetchProducts();
+    this.initProductsSync();
   }
 
-  private async fetchProducts() {
-    if (!this.fb.firestore) return;
+  /**
+   * Initializes real-time listener for products with Cloud Firestore
+   */
+  public initProductsSync() {
+    if (!this.fb.firestore) {
+      this.products.set(INITIAL_PRODUCTS);
+      return;
+    }
+
+    this.isLoading.set(true);
+    const prodCol = collection(this.fb.firestore, 'products');
+
     try {
-      const snap = await getDocs(collection(this.fb.firestore, 'products'));
-      if (!snap.empty) {
-        const loaded: Product[] = [];
-        snap.forEach(d => loaded.push({ id: d.id, ...(d.data() as Product) }));
-        this.products.set(loaded);
-      }
+      this.unsubscribeProducts = onSnapshot(
+        prodCol,
+        (snap) => {
+          this.isFirestoreConnected.set(true);
+          this.isLoading.set(false);
+
+          if (snap.empty) {
+            if (!this.hasAutoSeeded && !this.userExplicitlyCleared) {
+              this.hasAutoSeeded = true;
+              this.seedProductsToFirestore(false);
+            } else {
+              this.products.set([]);
+            }
+          } else {
+            this.hasAutoSeeded = true;
+            this.userExplicitlyCleared = false;
+            const list: Product[] = [];
+            snap.forEach((d) => {
+              const data = d.data();
+              list.push({
+                id: d.id,
+                name: data['name'] || 'Bebida',
+                description: data['description'] || '',
+                price: Number(data['price']) || 0,
+                categoryId: data['categoryId'] || 'cat-licores',
+                categoryName: data['categoryName'] || '',
+                imageUrl: data['imageUrl'] || 'https://images.unsplash.com/photo-1527281400683-1aae777175f8?auto=format&fit=crop&w=600&q=80',
+                stock: Number(data['stock']) || 0,
+                barId: data['barId'] || '',
+                barName: data['barName'] || '',
+                active: data['active'] ?? true,
+                volumeOrServing: data['volumeOrServing'] || '',
+                createdAt: data['createdAt']
+              });
+            });
+            this.products.set(list);
+          }
+        },
+        (error) => {
+          this.isLoading.set(false);
+          console.warn('Firestore products onSnapshot error:', error);
+          this.fb.handleError(error, OperationType.GET, 'products');
+          if (this.products().length === 0) {
+            this.products.set(INITIAL_PRODUCTS);
+          }
+        }
+      );
     } catch (e) {
+      this.isLoading.set(false);
       console.warn('Products fallback to defaults:', e);
+      this.products.set(INITIAL_PRODUCTS);
+    }
+  }
+
+  /**
+   * Seeds all products (including the 3 new drinks) directly into Cloud Firestore
+   */
+  public async seedProductsToFirestore(notifyUser = true): Promise<void> {
+    this.userExplicitlyCleared = false;
+    if (!this.fb.firestore) {
+      this.products.set(INITIAL_PRODUCTS);
+      if (notifyUser) {
+        this.notify.info('Catálogo de bebidas y tienda cargado localmente.');
+      }
+      return;
+    }
+
+    this.isLoading.set(true);
+    try {
+      for (const prod of INITIAL_PRODUCTS) {
+        const prodId = prod.id || ('prod-' + Math.random().toString(36).substring(2, 9));
+        const docRef = doc(this.fb.firestore, 'products', prodId);
+        await setDoc(docRef, {
+          name: prod.name,
+          description: prod.description,
+          price: prod.price,
+          categoryId: prod.categoryId,
+          categoryName: prod.categoryName,
+          imageUrl: prod.imageUrl,
+          stock: prod.stock,
+          barId: prod.barId || '',
+          barName: prod.barName || '',
+          active: prod.active ?? true,
+          volumeOrServing: prod.volumeOrServing || '',
+          createdAt: new Date().toISOString()
+        }, { merge: true });
+      }
+      this.isLoading.set(false);
+      if (notifyUser) {
+        this.notify.success(
+          `¡${INITIAL_PRODUCTS.length} bebidas y productos sincronizados con Cloud Firestore!`,
+          'Bebidas & Tienda Firebase'
+        );
+      }
+    } catch (err) {
+      this.isLoading.set(false);
+      this.fb.handleError(err, OperationType.WRITE, 'products');
     }
   }
 
@@ -296,16 +448,66 @@ export class StoreService {
   }
 
   public async addProduct(product: Omit<Product, 'id'>) {
-    const newProd: Product = { ...product, id: 'prod-' + Date.now(), createdAt: new Date().toISOString() };
+    const id = 'prod-' + Date.now();
+    const newProd: Product = { ...product, id, createdAt: new Date().toISOString() };
     if (this.fb.firestore) {
       try {
-        const ref = await addDoc(collection(this.fb.firestore, 'products'), newProd);
-        newProd.id = ref.id;
+        const docRef = doc(this.fb.firestore, 'products', id);
+        await setDoc(docRef, newProd);
+        this.notify.success(`Bebida / Producto "${newProd.name}" guardado en Cloud Firestore`);
       } catch (err) {
-        this.fb.handleError(err, OperationType.CREATE, 'products');
+        this.fb.handleError(err, OperationType.CREATE, `products/${id}`);
       }
+    } else {
+      this.products.update(p => [newProd, ...p]);
+      this.notify.success(`Producto "${newProd.name}" guardado localmente`);
     }
-    this.products.update(p => [newProd, ...p]);
-    this.notify.success(`Producto "${newProd.name}" guardado`);
+  }
+
+  public async deleteProduct(productId?: string): Promise<void> {
+    if (!productId) return;
+    if (this.fb.firestore) {
+      try {
+        await deleteDoc(doc(this.fb.firestore, 'products', productId));
+        this.notify.info('Bebida eliminada de Cloud Firestore');
+      } catch (err) {
+        this.fb.handleError(err, OperationType.DELETE, `products/${productId}`);
+      }
+    } else {
+      this.products.update(list => list.filter(p => p.id !== productId));
+      this.notify.info('Bebida eliminada localmente');
+    }
+  }
+
+  /**
+   * Elimina todas las bebidas y productos de la colección 'products' en Cloud Firestore
+   */
+  public async clearAllProductsFromFirestore(): Promise<void> {
+    const count = this.products().length;
+    if (count === 0) {
+      this.notify.info('No hay bebidas para eliminar.');
+      return;
+    }
+
+    this.userExplicitlyCleared = true;
+    this.isLoading.set(true);
+    if (this.fb.firestore) {
+      try {
+        const snap = await getDocs(collection(this.fb.firestore, 'products'));
+        for (const d of snap.docs) {
+          await deleteDoc(doc(this.fb.firestore, 'products', d.id));
+        }
+        this.products.set([]);
+        this.isLoading.set(false);
+        this.notify.warning('Se han eliminado todas las bebidas de la colección "products" en Firebase Firestore.');
+      } catch (err) {
+        this.isLoading.set(false);
+        this.fb.handleError(err, OperationType.DELETE, 'products');
+      }
+    } else {
+      this.products.set([]);
+      this.isLoading.set(false);
+      this.notify.warning('Catálogo de bebidas vaciado.');
+    }
   }
 }
